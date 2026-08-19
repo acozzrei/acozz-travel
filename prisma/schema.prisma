@@ -1,0 +1,74 @@
+// Travel Itinerary app data model
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id          String          @id @default(cuid())
+  name        String
+  destination String?
+  startDate   DateTime?
+  endDate     DateTime?
+  coverPhoto  String?
+  // Non-null = shareable via /share/[shareToken] (read-only, no login).
+  // Null = not shared. Revoking sharing clears this back to null.
+  shareToken  String?         @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ItineraryItem[]
+}
+
+model ItineraryItem {
+  id            String   @id @default(cuid())
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tripId        String
+  type          String   // "activity" | "event" | "dinner" | "lodging" | "transport" | "other"
+  title         String
+  venueName     String?
+  address       String?
+  lat           Float?
+  lng           Float?
+  startTime     DateTime?
+  endTime       DateTime?
+  partySize     Int?
+  notes         String?
+  confirmationNo String?
+  photoUrl      String?
+  photoSource   String?  // "places" | "streetview" | "email" | "placeholder" | "manual"
+  sourceEmailId String?
+  sourceSender  String?
+  status        String   @default("confirmed") // "confirmed" | "canceled" | "changed" | "pending"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tripId])
+}
+
+// Single-row table holding app-wide configuration (API keys, Gmail OAuth tokens).
+// Single-user app, so one row is enough.
+model Settings {
+  id                    Int      @id @default(1)
+  googleMapsApiKey      String?
+  gmailClientId         String?
+  gmailClientSecret     String?
+  gmailRefreshToken     String?
+  gmailConnectedEmail   String?
+  anthropicApiKey       String?
+  updatedAt             DateTime @updatedAt
+}
+
+// Emails already reviewed during Gmail import, so re-scanning the inbox
+// doesn't keep re-surfacing the same message as a new candidate.
+model ImportedEmail {
+  id           String   @id @default(cuid())
+  gmailMsgId   String   @unique
+  decision     String   // "imported" | "dismissed"
+  itineraryId  String?
+  createdAt    DateTime @default(now())
+}
