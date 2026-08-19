@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { findTripByIdOrSlug } from "@/lib/slug";
-import { shareCookieName, shareSessionToken } from "@/lib/shareAuth";
+import { getSettings } from "@/lib/settings";
+import { shareCookieName, checkTripPassword, fullSessionToken, viewSessionToken } from "@/lib/shareAuth";
 
 export async function POST(request, { params }) {
   const { id } = await params; // may be the trip's real id or its slug
@@ -11,16 +12,17 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (!trip.sharePassword) {
-    return NextResponse.json({ ok: true }); // nothing to check, shouldn't normally happen
-  }
-
-  if (password !== trip.sharePassword) {
+  const settings = await getSettings();
+  const level = await checkTripPassword(trip, settings.masterPassword, password);
+  if (!level) {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
-  const cookieValue = await shareSessionToken(trip.id, trip.sharePassword);
-  const res = NextResponse.json({ ok: true });
+  const cookieValue =
+    level === "full"
+      ? await fullSessionToken(trip.id, settings.masterPassword)
+      : await viewSessionToken(trip.id, trip.sharePassword);
+  const res = NextResponse.json({ ok: true, level });
   res.cookies.set(shareCookieName(trip.id), cookieValue, {
     httpOnly: true,
     secure: true,

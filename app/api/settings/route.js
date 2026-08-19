@@ -6,7 +6,7 @@ export async function GET() {
   return NextResponse.json(publicSettings(settings));
 }
 
-const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey"];
+const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey", "masterPassword"];
 
 export async function POST(request) {
   const body = await request.json();

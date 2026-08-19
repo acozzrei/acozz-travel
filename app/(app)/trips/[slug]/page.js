@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import TripView from "@/components/TripView";
-import { shareCookieName, isValidShareSession } from "@/lib/shareAuth";
+import { getRequestTripAccess } from "@/lib/shareAuth";
+import { getSettings } from "@/lib/settings";
 import { findTripByIdOrSlug } from "@/lib/slug";
 
 // Trip contents change constantly (add/edit/import), so always render fresh.
@@ -20,18 +20,18 @@ export default async function TripPage({ params }) {
   // slug URL so future visits (and the address bar) use the clean form.
   if (trip.slug && slug !== trip.slug) redirect(`/trips/${trip.slug}`);
 
-  // A trip's own password (set via its "Trip password" control, separate
-  // from sharing) protects the owner's view of it — unaffected by whether
-  // it's currently shared or what the share link needs.
-  if (trip.sharePassword) {
-    const cookieStore = await cookies();
-    const cookieValue = cookieStore.get(shareCookieName(trip.id))?.value;
-    const authed = await isValidShareSession(trip.id, trip.sharePassword, cookieValue);
-    if (!authed) redirect(`/trips/${trip.slug}/login`);
-  }
+  // Every trip requires a password now, regardless of whether this
+  // particular trip has its own view-only password set — the master
+  // password (from Settings) always works, so there's always at least one
+  // way in.
+  const settings = await getSettings();
+  const accessLevel = await getRequestTripAccess(trip, settings.masterPassword);
+  if (!accessLevel) redirect(`/trips/${trip.slug}/login`);
 
-  // Never ship the raw password down to the client — TripView only needs to
-  // know whether one is set.
+  // Never ship the raw password(s) down to the client. Full-access sessions
+  // get the trip's own password back (so the owner can read it to hand it
+  // out); view-only sessions just get a boolean.
   const { sharePassword, ...safeTrip } = trip;
-  return <TripView initialTrip={{ ...safeTrip, sharePassword: Boolean(sharePassword) }} />;
+  const safeSharePassword = accessLevel === "full" ? sharePassword : Boolean(sharePassword);
+  return <TripView initialTrip={{ ...safeTrip, sharePassword: safeSharePassword }} accessLevel={accessLevel} />;
 }

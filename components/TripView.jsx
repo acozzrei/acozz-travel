@@ -8,13 +8,17 @@ import TripPasswordModal from "@/components/TripPasswordModal";
 import TripCoverBanner from "@/components/TripCoverBanner";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 
-export default function TripView({ initialTrip }) {
+export default function TripView({ initialTrip, accessLevel }) {
   const [trip, setTrip] = useState(initialTrip);
   const [addOpen, setAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [gmailOpen, setGmailOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+
+  // "full" (master password) can do everything; "view" (this trip's own
+  // password) is read-only — every mutating control below is hidden for it.
+  const canEdit = accessLevel === "full";
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/trips/${initialTrip.id}`);
@@ -41,41 +45,49 @@ export default function TripView({ initialTrip }) {
     <div className="max-w-4xl mx-auto px-5 py-8">
       <TripCoverBanner trip={trip} />
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <button
-          onClick={() => setAddOpen(true)}
-          className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 transition"
-        >
-          + Add item
-        </button>
-        <button
-          onClick={() => setGmailOpen(true)}
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
-        >
-          Import from Gmail
-        </button>
-        <button
-          onClick={() => setShareOpen(true)}
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition ml-auto"
-        >
-          {trip.shareToken ? "Shared ✓" : "Share"}
-        </button>
-        <button
-          onClick={() => setPasswordOpen(true)}
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
-        >
-          {trip.sharePassword ? "Trip password ✓" : "Trip password"}
-        </button>
-      </div>
+      {!canEdit && (
+        <p className="text-sm text-stone-500 bg-stone-100 rounded-lg px-3 py-2 mb-4">
+          Viewing with this trip&apos;s password — read-only. The master password unlocks full access.
+        </p>
+      )}
+
+      {canEdit && (
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 transition"
+          >
+            + Add item
+          </button>
+          <button
+            onClick={() => setGmailOpen(true)}
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
+          >
+            Import from Gmail
+          </button>
+          <button
+            onClick={() => setShareOpen(true)}
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition ml-auto"
+          >
+            {trip.shareToken ? "Shared ✓" : "Share"}
+          </button>
+          <button
+            onClick={() => setPasswordOpen(true)}
+            className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
+          >
+            {trip.sharePassword ? "Trip password ✓" : "Trip password"}
+          </button>
+        </div>
+      )}
 
       <ItineraryTimeline
         items={trip.items}
-        onEdit={setEditingItem}
-        onDelete={handleDelete}
-        onResolvePhoto={handleResolvePhoto}
+        onEdit={canEdit ? setEditingItem : undefined}
+        onDelete={canEdit ? handleDelete : undefined}
+        onResolvePhoto={canEdit ? handleResolvePhoto : undefined}
       />
 
-      {addOpen && (
+      {canEdit && addOpen && (
         <AddItemForm
           tripId={trip.id}
           onClose={() => setAddOpen(false)}
@@ -85,7 +97,7 @@ export default function TripView({ initialTrip }) {
           }}
         />
       )}
-      {editingItem && (
+      {canEdit && editingItem && (
         <AddItemForm
           tripId={trip.id}
           item={editingItem}
@@ -96,14 +108,14 @@ export default function TripView({ initialTrip }) {
           }}
         />
       )}
-      {gmailOpen && (
+      {canEdit && gmailOpen && (
         <GmailImportPanel
           tripId={trip.id}
           onClose={() => setGmailOpen(false)}
           onImported={refresh}
         />
       )}
-      {shareOpen && (
+      {canEdit && shareOpen && (
         <ShareModal
           tripId={trip.id}
           tripName={trip.name}
@@ -113,7 +125,7 @@ export default function TripView({ initialTrip }) {
           onChange={(shareToken) => setTrip((t) => ({ ...t, shareToken }))}
         />
       )}
-      {passwordOpen && (
+      {canEdit && passwordOpen && (
         <TripPasswordModal
           tripId={trip.id}
           sharePassword={trip.sharePassword}

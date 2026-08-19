@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Sets/changes/removes the password that gates this trip's OWN page
-// (/trips/[slug]) — separate from the Share button, which no longer needs a
-// password at all. Kept as its own small modal so the two concerns (sharing
-// vs. protecting the owner's page) don't get tangled together in the UI.
+// Sets/changes/removes this trip's own view-only password — separate from
+// the master password (set in Settings, grants full access to every trip)
+// and separate from the Share button, which no longer needs a password at
+// all. Only reachable with full access already, so the current value is
+// shown directly (not just a "set" indicator) for handing out.
 export default function TripPasswordModal({ tripId, sharePassword, onClose, onChange }) {
-  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState(sharePassword || "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    setPasswordInput(sharePassword || "");
+  }, [sharePassword]);
 
   async function save(e) {
     e.preventDefault();
@@ -23,8 +28,7 @@ export default function TripPasswordModal({ tripId, sharePassword, onClose, onCh
       });
       const data = await res.json();
       onChange(data.sharePassword);
-      setPasswordInput("");
-      setMessage(data.sharePassword ? "Password set." : "Password removed — this trip's page is now open to anyone with the link.");
+      setMessage(data.sharePassword ? "Password saved." : "Password removed — this trip can no longer be opened with a view-only password.");
     } finally {
       setSaving(false);
     }
@@ -42,7 +46,7 @@ export default function TripPasswordModal({ tripId, sharePassword, onClose, onCh
       const data = await res.json();
       onChange(data.sharePassword);
       setPasswordInput("");
-      setMessage("Password removed — this trip's page is now open to anyone with the link.");
+      setMessage("Password removed — this trip can no longer be opened with a view-only password.");
     } finally {
       setSaving(false);
     }
@@ -55,14 +59,14 @@ export default function TripPasswordModal({ tripId, sharePassword, onClose, onCh
         className="bg-white rounded-2xl p-5 w-full max-w-md flex flex-col gap-3"
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-lg">Trip password</h3>
+          <h3 className="font-semibold text-lg">Trip password (view-only)</h3>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700">✕</button>
         </div>
 
         <p className="text-sm text-stone-500">
-          {sharePassword
-            ? "A password is required to open this trip's own page (not the share link)."
-            : "Optionally require a password before this trip's own page opens. This is separate from the share link, which is always open."}
+          Anyone who enters this password on this trip&apos;s login screen gets read-only access — they
+          can&apos;t add, edit, delete, import, or share. The master password (set in Settings) always
+          grants full access instead.
         </p>
 
         <form onSubmit={save} className="flex gap-2">
@@ -70,12 +74,12 @@ export default function TripPasswordModal({ tripId, sharePassword, onClose, onCh
             type="text"
             value={passwordInput}
             onChange={(e) => setPasswordInput(e.target.value)}
-            placeholder={sharePassword ? "Set a new password" : "No password set"}
+            placeholder="No view-only password set"
             className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm"
           />
           <button
             type="submit"
-            disabled={saving || !passwordInput}
+            disabled={saving}
             className="rounded-lg bg-teal-600 text-white px-3 py-2 text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50 whitespace-nowrap"
           >
             {saving ? "Saving…" : "Save"}

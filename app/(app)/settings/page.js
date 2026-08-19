@@ -36,6 +36,7 @@ function SettingsInner() {
     gmailClientId: "",
     gmailClientSecret: "",
     anthropicApiKey: "",
+    masterPassword: "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -43,7 +44,14 @@ function SettingsInner() {
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then(setSettings);
+      .then((data) => {
+        setSettings(data);
+        // Unlike the other fields (blank = keep as-is), the master password
+        // field shows its current value directly, so it doubles as "what is
+        // it right now" — there's nothing secret about it once you're past
+        // the Settings login.
+        setForm((f) => ({ ...f, masterPassword: data.masterPassword || "" }));
+      });
   }, []);
 
   useEffect(() => {
@@ -63,7 +71,13 @@ function SettingsInner() {
       });
       const data = await res.json();
       setSettings(data);
-      setForm({ googleMapsApiKey: "", gmailClientId: "", gmailClientSecret: "", anthropicApiKey: "" });
+      setForm({
+        googleMapsApiKey: "",
+        gmailClientId: "",
+        gmailClientSecret: "",
+        anthropicApiKey: "",
+        masterPassword: data.masterPassword || "",
+      });
       setMessage({ type: "ok", text: "Saved." });
     } catch {
       setMessage({ type: "error", text: "Failed to save settings." });
@@ -110,6 +124,28 @@ function SettingsInner() {
           {message.text}
         </p>
       )}
+
+      <section className="card p-5 flex flex-col gap-3">
+        <h2 className="font-semibold">Trip access</h2>
+        <p className="text-sm text-stone-500">
+          Every trip now requires a password to open. This master password unlocks{" "}
+          <strong>every</strong> trip with full access (Add/Edit/Delete/Import/Share). Each trip also has
+          its own separate password (set from that trip&apos;s own page) that only grants view-only access.
+        </p>
+        <label className="text-sm font-medium text-stone-700 flex flex-col gap-1">
+          Master password
+          <input
+            type="text"
+            value={form.masterPassword}
+            onChange={(e) => setForm((f) => ({ ...f, masterPassword: e.target.value }))}
+            placeholder="No master password set — no one has full access yet"
+            className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
+          />
+          <span className="text-xs text-stone-400 font-normal">
+            Shown in full so you can hand it out — clear this field and save to remove it.
+          </span>
+        </label>
+      </section>
 
       <section className="card p-5 flex flex-col gap-3">
         <h2 className="font-semibold">Real location photos</h2>

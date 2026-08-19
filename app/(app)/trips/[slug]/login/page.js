@@ -36,7 +36,9 @@ export default function TripLoginPage({ params }) {
     <div className="max-w-sm mx-auto px-5 py-16 flex flex-col gap-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">This trip is password protected</h1>
-        <p className="text-stone-500 text-sm mt-1">Enter the password to view or edit it.</p>
+        <p className="text-stone-500 text-sm mt-1">
+          Enter the master password for full access, or this trip&apos;s own password to view it.
+        </p>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <input
