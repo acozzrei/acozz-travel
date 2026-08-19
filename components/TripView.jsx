@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import AddItemForm from "@/components/AddItemForm";
 import GmailImportPanel from "@/components/GmailImportPanel";
 import ShareModal from "@/components/ShareModal";
@@ -9,12 +10,14 @@ import TripCoverBanner from "@/components/TripCoverBanner";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 
 export default function TripView({ initialTrip, accessLevel }) {
+  const router = useRouter();
   const [trip, setTrip] = useState(initialTrip);
   const [addOpen, setAddOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [gmailOpen, setGmailOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   // "full" (master password) can do everything; "view" (this trip's own
   // password) is read-only — every mutating control below is hidden for it.
@@ -24,6 +27,19 @@ export default function TripView({ initialTrip, accessLevel }) {
     const res = await fetch(`/api/trips/${initialTrip.id}`);
     if (res.ok) setTrip(await res.json());
   }, [initialTrip.id]);
+
+  // The only way to switch between full and view-only on this trip is to
+  // clear the current session and log back in with the other password.
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      await fetch(`/api/trips/${trip.id}/logout`, { method: "POST" });
+      router.push(`/trips/${trip.slug}/login`);
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   async function handleDelete(item) {
     if (!confirm(`Remove "${item.title}" from this trip?`)) return;
@@ -46,9 +62,18 @@ export default function TripView({ initialTrip, accessLevel }) {
       <TripCoverBanner trip={trip} />
 
       {!canEdit && (
-        <p className="text-sm text-stone-500 bg-stone-100 rounded-lg px-3 py-2 mb-4">
-          Viewing with this trip&apos;s password — read-only. The master password unlocks full access.
-        </p>
+        <div className="flex flex-wrap items-center gap-3 bg-stone-100 rounded-lg px-3 py-2 mb-4">
+          <p className="text-sm text-stone-500">
+            Viewing with this trip&apos;s password — read-only. The master password unlocks full access.
+          </p>
+          <button
+            onClick={logout}
+            disabled={loggingOut}
+            className="text-sm text-teal-700 hover:text-teal-800 underline disabled:opacity-50 ml-auto"
+          >
+            {loggingOut ? "Logging out…" : "Log out"}
+          </button>
+        </div>
       )}
 
       {canEdit && (
@@ -76,6 +101,13 @@ export default function TripView({ initialTrip, accessLevel }) {
             className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
           >
             {trip.sharePassword ? "Trip password ✓" : "Trip password"}
+          </button>
+          <button
+            onClick={logout}
+            disabled={loggingOut}
+            className="text-sm text-stone-500 hover:text-stone-700 underline disabled:opacity-50 self-center"
+          >
+            {loggingOut ? "Logging out…" : "Log out"}
           </button>
         </div>
       )}
