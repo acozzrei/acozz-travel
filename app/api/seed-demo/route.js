@@ -2,11 +2,23 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { DEMO_TRIP, DEMO_ITEMS } from "@/lib/demoData";
 import { uniqueTripSlug } from "@/lib/slug";
+import { getSettings } from "@/lib/settings";
 
 /** Creates the sample Grand Cayman trip (sourced from real booking emails)
  * so there's something real to look at right away. Safe to call more than
  * once — it skips creating a duplicate if a trip with this name exists. */
-export async function POST() {
+export async function POST(request) {
+  // Same master-password requirement as creating any other trip — this is
+  // just a shortcut that fills one in automatically, not a way around it.
+  const { masterPassword } = await request.json().catch(() => ({}));
+  const settings = await getSettings();
+  if (!settings.masterPassword) {
+    return NextResponse.json({ error: "Set a master password in Settings before creating trips." }, { status: 400 });
+  }
+  if (masterPassword !== settings.masterPassword) {
+    return NextResponse.json({ error: "Incorrect master password." }, { status: 401 });
+  }
+
   const existing = await prisma.trip.findFirst({ where: { name: DEMO_TRIP.name } });
   if (existing) {
     return NextResponse.json({ trip: existing, created: false });

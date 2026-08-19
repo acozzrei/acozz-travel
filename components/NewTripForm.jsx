@@ -10,6 +10,7 @@ export default function NewTripForm({ onDone }) {
   const [destination, setDestination] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [masterPassword, setMasterPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -21,7 +22,7 @@ export default function NewTripForm({ onDone }) {
       const res = await fetch("/api/trips", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, destination, startDate, endDate }),
+        body: JSON.stringify({ name, destination, startDate, endDate, masterPassword }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Failed to create trip");
       const trip = await res.json();
@@ -30,6 +31,7 @@ export default function NewTripForm({ onDone }) {
       setDestination("");
       setStartDate("");
       setEndDate("");
+      setMasterPassword("");
       router.push(`/trips/${trip.slug}`);
     } catch (err) {
       setError(err.message);
@@ -84,6 +86,14 @@ export default function NewTripForm({ onDone }) {
           className="border border-stone-300 rounded-lg px-3 py-2 text-sm flex-1"
         />
       </div>
+      <input
+        required
+        type="password"
+        placeholder="Master password"
+        value={masterPassword}
+        onChange={(e) => setMasterPassword(e.target.value)}
+        className="border border-stone-300 rounded-lg px-3 py-2 text-sm"
+      />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
