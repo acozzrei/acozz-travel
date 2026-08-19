@@ -7,14 +7,16 @@ import ItineraryTimeline from "@/components/ItineraryTimeline";
 // always render fresh rather than a build-time snapshot.
 export const dynamic = "force-dynamic";
 
+// This is the public-facing page — read-only, no login, no add/edit/import
+// controls of any kind. It's the only route ever handed out as a share
+// link; the owner's editing "backend" lives separately at /trips/[slug].
 export default async function SharedTripPage({ params }) {
   const { slug } = await params;
   const trip = await prisma.trip.findUnique({
     where: { slug },
     include: { items: { orderBy: { startTime: "asc" } } },
   });
-  // A missing trip, OR one that isn't currently shared (shareToken cleared
-  // by "Stop sharing"), both 404 the same way.
+  // A missing trip, or one that isn't currently shared, both 404 the same way.
   if (!trip || !trip.shareToken) notFound();
 
   return (

@@ -25,9 +25,6 @@ model Trip {
   // used as part of the URL anymore — it's just an on/off flag plus a way to
   // instantly revoke by clearing it back to null.
   shareToken  String?         @unique
-  // Optional password required to open this trip's OWN page in the main app
-  // (/trips/[slug]) — unrelated to sharing, which no longer requires one.
-  sharePassword String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   items       ItineraryItem[]

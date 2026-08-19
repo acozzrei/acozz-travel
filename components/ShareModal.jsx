@@ -27,13 +27,6 @@ export default function ShareModal({ tripId, tripName, tripSlug, shareToken, onC
     }
   }
 
-  async function stopSharing() {
-    if (!confirm("Stop sharing? The current link will stop working immediately.")) return;
-    await fetch(`/api/trips/${tripId}/share`, { method: "DELETE" });
-    setToken(null);
-    onChange(null);
-  }
-
   async function copyLink() {
     await navigator.clipboard.writeText(url);
     setCopied(true);
@@ -113,12 +106,6 @@ export default function ShareModal({ tripId, tripName, tripSlug, shareToken, onC
                 {copied ? "Copied!" : "Or copy link"}
               </button>
             )}
-            <button
-              onClick={stopSharing}
-              className="text-sm text-red-600 hover:text-red-700 self-start mt-1"
-            >
-              Stop sharing
-            </button>
           </>
         )}
       </div>

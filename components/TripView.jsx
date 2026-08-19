@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import AddItemForm from "@/components/AddItemForm";
 import GmailImportPanel from "@/components/GmailImportPanel";
 import ShareModal from "@/components/ShareModal";
-import TripPasswordModal from "@/components/TripPasswordModal";
 import TripCoverBanner from "@/components/TripCoverBanner";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
 
@@ -14,7 +13,6 @@ export default function TripView({ initialTrip }) {
   const [editingItem, setEditingItem] = useState(null);
   const [gmailOpen, setGmailOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const res = await fetch(`/api/trips/${initialTrip.id}`);
@@ -59,12 +57,6 @@ export default function TripView({ initialTrip }) {
           className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition ml-auto"
         >
           {trip.shareToken ? "Shared ✓" : "Share"}
-        </button>
-        <button
-          onClick={() => setPasswordOpen(true)}
-          className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
-        >
-          {trip.sharePassword ? "Trip password ✓" : "Trip password"}
         </button>
       </div>
 
@@ -111,14 +103,6 @@ export default function TripView({ initialTrip }) {
           shareToken={trip.shareToken}
           onClose={() => setShareOpen(false)}
           onChange={(shareToken) => setTrip((t) => ({ ...t, shareToken }))}
-        />
-      )}
-      {passwordOpen && (
-        <TripPasswordModal
-          tripId={trip.id}
-          sharePassword={trip.sharePassword}
-          onClose={() => setPasswordOpen(false)}
-          onChange={(sharePassword) => setTrip((t) => ({ ...t, sharePassword }))}
         />
       )}
     </div>

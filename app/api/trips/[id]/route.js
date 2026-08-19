@@ -23,8 +23,6 @@ export async function PATCH(request, { params }) {
   if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
   if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
   if (body.coverPhoto !== undefined) data.coverPhoto = body.coverPhoto;
-  // Empty string clears the share password; undefined leaves it untouched.
-  if (body.sharePassword !== undefined) data.sharePassword = body.sharePassword === "" ? null : body.sharePassword;
 
   const trip = await prisma.trip.update({ where: { id: existing.id }, data });
   return NextResponse.json(trip);
