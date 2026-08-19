@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findTripByIdOrSlug } from "@/lib/slug";
 
 export async function GET(request, { params }) {
-  const { id } = await params;
-  const trip = await prisma.trip.findUnique({
-    where: { id },
+  const { id } = await params; // may be the trip's real id or its slug
+  const trip = await findTripByIdOrSlug(id, {
     include: { items: { orderBy: { startTime: "asc" } } },
   });
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -13,6 +13,9 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   const { id } = await params;
+  const existing = await findTripByIdOrSlug(id);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const body = await request.json();
   const data = {};
   if (body.name !== undefined) data.name = body.name;
@@ -23,12 +26,14 @@ export async function PATCH(request, { params }) {
   // Empty string clears the share password; undefined leaves it untouched.
   if (body.sharePassword !== undefined) data.sharePassword = body.sharePassword === "" ? null : body.sharePassword;
 
-  const trip = await prisma.trip.update({ where: { id }, data });
+  const trip = await prisma.trip.update({ where: { id: existing.id }, data });
   return NextResponse.json(trip);
 }
 
 export async function DELETE(request, { params }) {
   const { id } = await params;
-  await prisma.trip.delete({ where: { id } });
+  const existing = await findTripByIdOrSlug(id);
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await prisma.trip.delete({ where: { id: existing.id } });
   return NextResponse.json({ ok: true });
 }

@@ -12,15 +12,21 @@ datasource db {
 model Trip {
   id          String          @id @default(cuid())
   name        String
+  // URL-friendly identifier used in /trips/[slug] and /share/[slug] instead
+  // of the raw id. Assigned once at creation from the trip name and kept
+  // stable even if the trip is later renamed, so links don't break.
+  slug        String?         @unique
   destination String?
   startDate   DateTime?
   endDate     DateTime?
   coverPhoto  String?
-  // Non-null = shareable via /share/[shareToken] (read-only, no login).
-  // Null = not shared. Revoking sharing clears this back to null.
+  // Non-null = sharing is turned on for this trip (visible at /share/[slug],
+  // no login required to view). Null = not shared. The value itself isn't
+  // used as part of the URL anymore — it's just an on/off flag plus a way to
+  // instantly revoke by clearing it back to null.
   shareToken  String?         @unique
-  // Optional password required to view the shared link. Null = the share
-  // link is open to anyone who has it (the previous, default behavior).
+  // Optional password required to open this trip's OWN page in the main app
+  // (/trips/[slug]) — unrelated to sharing, which no longer requires one.
   sharePassword String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

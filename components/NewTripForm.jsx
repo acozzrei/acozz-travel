@@ -30,7 +30,7 @@ export default function NewTripForm({ onDone }) {
       setDestination("");
       setStartDate("");
       setEndDate("");
-      router.push(`/trips/${trip.id}`);
+      router.push(`/trips/${trip.slug}`);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -42,7 +42,7 @@ export default async function HomePage() {
         {trips.map((trip) => (
           <Link
             key={trip.id}
-            href={`/trips/${trip.id}`}
+            href={`/trips/${trip.slug}`}
             className="card overflow-hidden hover:shadow-md transition group"
           >
             <div className="h-36 bg-gradient-to-br from-teal-500 to-teal-700 relative">

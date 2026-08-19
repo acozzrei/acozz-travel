@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { findTripByIdOrSlug } from "@/lib/slug";
 import { shareCookieName, shareSessionToken } from "@/lib/shareAuth";
 
 export async function POST(request, { params }) {
-  const { id } = await params;
+  const { id } = await params; // may be the trip's real id or its slug
   const { password } = await request.json().catch(() => ({}));
 
-  const trip = await prisma.trip.findUnique({ where: { id } });
+  const trip = await findTripByIdOrSlug(id);
   if (!trip) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

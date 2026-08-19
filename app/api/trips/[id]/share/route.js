@@ -1,10 +1,11 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findTripByIdOrSlug } from "@/lib/slug";
 
 function generateToken() {
-  // 16 URL-safe characters — random enough that a shared link isn't
-  // guessable, short enough to paste around comfortably.
+  // Just an on/off marker now (the share URL itself is the trip's slug, not
+  // this value) — kept random regardless so nothing relies on its format.
   return crypto.randomBytes(12).toString("base64url");
 }
 
@@ -13,17 +14,19 @@ function generateToken() {
  * dialog). */
 export async function POST(request, { params }) {
   const { id } = await params;
-  const trip = await prisma.trip.findUnique({ where: { id } });
+  const trip = await findTripByIdOrSlug(id);
   if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const shareToken = trip.shareToken || generateToken();
-  const updated = await prisma.trip.update({ where: { id }, data: { shareToken } });
-  return NextResponse.json({ shareToken: updated.shareToken });
+  const updated = await prisma.trip.update({ where: { id: trip.id }, data: { shareToken } });
+  return NextResponse.json({ shareToken: updated.shareToken, slug: updated.slug });
 }
 
 /** Revokes sharing — the old link stops working immediately. */
 export async function DELETE(request, { params }) {
   const { id } = await params;
-  await prisma.trip.update({ where: { id }, data: { shareToken: null } });
+  const trip = await findTripByIdOrSlug(id);
+  if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await prisma.trip.update({ where: { id: trip.id }, data: { shareToken: null } });
   return NextResponse.json({ ok: true });
 }

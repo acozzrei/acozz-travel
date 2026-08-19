@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { DEMO_TRIP, DEMO_ITEMS } from "@/lib/demoData";
+import { uniqueTripSlug } from "@/lib/slug";
 
 /** Creates the sample Grand Cayman trip (sourced from real booking emails)
  * so there's something real to look at right away. Safe to call more than
@@ -11,9 +12,11 @@ export async function POST() {
     return NextResponse.json({ trip: existing, created: false });
   }
 
+  const slug = await uniqueTripSlug(DEMO_TRIP.name);
   const trip = await prisma.trip.create({
     data: {
       name: DEMO_TRIP.name,
+      slug,
       destination: DEMO_TRIP.destination,
       startDate: new Date(DEMO_TRIP.startDate),
       endDate: new Date(DEMO_TRIP.endDate),

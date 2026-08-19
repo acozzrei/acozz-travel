@@ -12,7 +12,7 @@ export default function SeedDemoButton() {
     try {
       const res = await fetch("/api/seed-demo", { method: "POST" });
       const data = await res.json();
-      router.push(`/trips/${data.trip.id}`);
+      router.push(`/trips/${data.trip.slug}`);
     } finally {
       setLoading(false);
     }

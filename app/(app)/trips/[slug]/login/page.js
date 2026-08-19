@@ -3,8 +3,8 @@
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ShareLoginPage({ params }) {
-  const { token } = use(params);
+export default function TripLoginPage({ params }) {
+  const { slug } = use(params);
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -15,7 +15,7 @@ export default function ShareLoginPage({ params }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/share/${token}/login`, {
+      const res = await fetch(`/api/trips/${slug}/login`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ password }),
@@ -25,7 +25,7 @@ export default function ShareLoginPage({ params }) {
         setError(data.error || "Incorrect password.");
         return;
       }
-      router.push(`/share/${token}`);
+      router.push(`/trips/${slug}`);
       router.refresh();
     } finally {
       setLoading(false);
@@ -36,7 +36,7 @@ export default function ShareLoginPage({ params }) {
     <div className="max-w-sm mx-auto px-5 py-16 flex flex-col gap-5">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">This trip is password protected</h1>
-        <p className="text-stone-500 text-sm mt-1">Enter the password you were given to view it.</p>
+        <p className="text-stone-500 text-sm mt-1">Enter the password to view or edit it.</p>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <input

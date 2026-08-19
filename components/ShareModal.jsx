@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react";
 
-export default function ShareModal({ tripId, shareToken, sharePassword, onClose, onChange, onPasswordChange }) {
+export default function ShareModal({ tripId, tripName, tripSlug, shareToken, onClose, onChange }) {
   const [token, setToken] = useState(shareToken);
   const [loading, setLoading] = useState(!shareToken);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState(null);
 
-  const url = token && typeof window !== "undefined" ? `${window.location.origin}/share/${token}` : "";
+  const url = tripSlug && typeof window !== "undefined" ? `${window.location.origin}/share/${tripSlug}` : "";
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   async function enableSharing() {
     setLoading(true);
@@ -42,22 +40,16 @@ export default function ShareModal({ tripId, shareToken, sharePassword, onClose,
     setTimeout(() => setCopied(false), 1500);
   }
 
-  async function savePassword(e) {
-    e.preventDefault();
-    setPasswordSaving(true);
-    setPasswordMessage(null);
+  async function sendLink() {
     try {
-      const res = await fetch(`/api/trips/${tripId}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sharePassword: passwordInput }),
+      await navigator.share({
+        title: tripName ? `${tripName} itinerary` : "Trip itinerary",
+        text: tripName ? `Here's the itinerary for ${tripName}:` : "Here's the itinerary:",
+        url,
       });
-      const data = await res.json();
-      onPasswordChange(data.sharePassword);
-      setPasswordInput("");
-      setPasswordMessage(data.sharePassword ? "Password set." : "Password removed — link is open to anyone who has it.");
-    } finally {
-      setPasswordSaving(false);
+    } catch (err) {
+      // AbortError just means the user closed the native share sheet — ignore it.
+      if (err?.name !== "AbortError") setError("Couldn't open the share sheet.");
     }
   }
 
@@ -97,64 +89,36 @@ export default function ShareModal({ tripId, shareToken, sharePassword, onClose,
                 onFocus={(e) => e.target.select()}
                 className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-600"
               />
+              {canNativeShare ? (
+                <button
+                  onClick={sendLink}
+                  className="rounded-lg bg-teal-600 text-white px-3 py-2 text-sm font-medium hover:bg-teal-700 transition whitespace-nowrap"
+                >
+                  Send
+                </button>
+              ) : (
+                <button
+                  onClick={copyLink}
+                  className="rounded-lg bg-teal-600 text-white px-3 py-2 text-sm font-medium hover:bg-teal-700 transition whitespace-nowrap"
+                >
+                  {copied ? "Copied!" : "Copy link"}
+                </button>
+              )}
+            </div>
+            {canNativeShare && (
               <button
                 onClick={copyLink}
-                className="rounded-lg bg-teal-600 text-white px-3 py-2 text-sm font-medium hover:bg-teal-700 transition whitespace-nowrap"
+                className="text-sm text-teal-700 hover:text-teal-800 self-start"
               >
-                {copied ? "Copied!" : "Copy link"}
+                {copied ? "Copied!" : "Or copy link"}
               </button>
-            </div>
+            )}
             <button
               onClick={stopSharing}
               className="text-sm text-red-600 hover:text-red-700 self-start mt-1"
             >
               Stop sharing
             </button>
-
-            <div className="border-t border-stone-200 pt-3 mt-1 flex flex-col gap-2">
-              <p className="text-sm text-stone-500">
-                {sharePassword
-                  ? "A password is required to view this link."
-                  : "Optionally require a password before this link opens."}
-              </p>
-              <form onSubmit={savePassword} className="flex gap-2">
-                <input
-                  type="text"
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder={sharePassword ? "Set a new password" : "No password set"}
-                  className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  disabled={passwordSaving}
-                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-100 transition disabled:opacity-50 whitespace-nowrap"
-                >
-                  {passwordSaving ? "Saving…" : "Save"}
-                </button>
-              </form>
-              {sharePassword && (
-                <button
-                  onClick={() => {
-                    setPasswordInput("");
-                    fetch(`/api/trips/${tripId}`, {
-                      method: "PATCH",
-                      headers: { "content-type": "application/json" },
-                      body: JSON.stringify({ sharePassword: "" }),
-                    })
-                      .then((r) => r.json())
-                      .then((data) => {
-                        onPasswordChange(data.sharePassword);
-                        setPasswordMessage("Password removed — link is open to anyone who has it.");
-                      });
-                  }}
-                  className="text-sm text-stone-500 hover:text-stone-700 self-start underline"
-                >
-                  Remove password
-                </button>
-              )}
-              {passwordMessage && <p className="text-sm text-teal-700">{passwordMessage}</p>}
-            </div>
           </>
         )}
       </div>
