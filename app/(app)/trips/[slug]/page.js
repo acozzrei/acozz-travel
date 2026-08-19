@@ -30,5 +30,8 @@ export default async function TripPage({ params }) {
     if (!authed) redirect(`/trips/${trip.slug}/login`);
   }
 
-  return <TripView initialTrip={trip} />;
+  // Never ship the raw password down to the client — TripView only needs to
+  // know whether one is set.
+  const { sharePassword, ...safeTrip } = trip;
+  return <TripView initialTrip={{ ...safeTrip, sharePassword: Boolean(sharePassword) }} />;
 }
