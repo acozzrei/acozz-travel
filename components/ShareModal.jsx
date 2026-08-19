@@ -2,11 +2,14 @@
 
 import { useState, useEffect } from "react";
 
-export default function ShareModal({ tripId, shareToken, onClose, onChange }) {
+export default function ShareModal({ tripId, shareToken, sharePassword, onClose, onChange, onPasswordChange }) {
   const [token, setToken] = useState(shareToken);
   const [loading, setLoading] = useState(!shareToken);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState(null);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState(null);
 
   const url = token && typeof window !== "undefined" ? `${window.location.origin}/share/${token}` : "";
 
@@ -37,6 +40,25 @@ export default function ShareModal({ tripId, shareToken, onClose, onChange }) {
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  }
+
+  async function savePassword(e) {
+    e.preventDefault();
+    setPasswordSaving(true);
+    setPasswordMessage(null);
+    try {
+      const res = await fetch(`/api/trips/${tripId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sharePassword: passwordInput }),
+      });
+      const data = await res.json();
+      onPasswordChange(data.sharePassword);
+      setPasswordInput("");
+      setPasswordMessage(data.sharePassword ? "Password set." : "Password removed — link is open to anyone who has it.");
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   // Fire the initial share creation as soon as the modal mounts without a
@@ -88,6 +110,51 @@ export default function ShareModal({ tripId, shareToken, onClose, onChange }) {
             >
               Stop sharing
             </button>
+
+            <div className="border-t border-stone-200 pt-3 mt-1 flex flex-col gap-2">
+              <p className="text-sm text-stone-500">
+                {sharePassword
+                  ? "A password is required to view this link."
+                  : "Optionally require a password before this link opens."}
+              </p>
+              <form onSubmit={savePassword} className="flex gap-2">
+                <input
+                  type="text"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder={sharePassword ? "Set a new password" : "No password set"}
+                  className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm"
+                />
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="rounded-lg border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-100 transition disabled:opacity-50 whitespace-nowrap"
+                >
+                  {passwordSaving ? "Saving…" : "Save"}
+                </button>
+              </form>
+              {sharePassword && (
+                <button
+                  onClick={() => {
+                    setPasswordInput("");
+                    fetch(`/api/trips/${tripId}`, {
+                      method: "PATCH",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ sharePassword: "" }),
+                    })
+                      .then((r) => r.json())
+                      .then((data) => {
+                        onPasswordChange(data.sharePassword);
+                        setPasswordMessage("Password removed — link is open to anyone who has it.");
+                      });
+                  }}
+                  className="text-sm text-stone-500 hover:text-stone-700 self-start underline"
+                >
+                  Remove password
+                </button>
+              )}
+              {passwordMessage && <p className="text-sm text-teal-700">{passwordMessage}</p>}
+            </div>
           </>
         )}
       </div>

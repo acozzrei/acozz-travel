@@ -99,8 +99,10 @@ export default function TripView({ initialTrip }) {
         <ShareModal
           tripId={trip.id}
           shareToken={trip.shareToken}
+          sharePassword={trip.sharePassword}
           onClose={() => setShareOpen(false)}
           onChange={(shareToken) => setTrip((t) => ({ ...t, shareToken }))}
+          onPasswordChange={(sharePassword) => setTrip((t) => ({ ...t, sharePassword }))}
         />
       )}
     </div>

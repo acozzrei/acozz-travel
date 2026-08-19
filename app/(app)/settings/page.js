@@ -72,6 +72,11 @@ function SettingsInner() {
     }
   }
 
+  async function logout() {
+    await fetch("/api/settings/logout", { method: "POST" });
+    window.location.href = "/settings/login";
+  }
+
   async function connectGmail() {
     const res = await fetch("/api/gmail/auth-url");
     const data = await res.json();
@@ -83,11 +88,21 @@ function SettingsInner() {
 
   return (
     <div className="max-w-2xl mx-auto px-5 py-10 flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-stone-500 text-sm mt-1">
-          Add your own API keys so the app can pull real bookings and real location photos.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+          <p className="text-stone-500 text-sm mt-1">
+            Add your own API keys so the app can pull real bookings and real location photos.
+          </p>
+        </div>
+        {settings.authEnabled && (
+          <button
+            onClick={logout}
+            className="text-sm text-stone-500 hover:text-stone-700 underline shrink-0"
+          >
+            Log out
+          </button>
+        )}
       </div>
 
       {message && (

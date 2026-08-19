@@ -19,6 +19,9 @@ model Trip {
   // Non-null = shareable via /share/[shareToken] (read-only, no login).
   // Null = not shared. Revoking sharing clears this back to null.
   shareToken  String?         @unique
+  // Optional password required to view the shared link. Null = the share
+  // link is open to anyone who has it (the previous, default behavior).
+  sharePassword String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   items       ItineraryItem[]
