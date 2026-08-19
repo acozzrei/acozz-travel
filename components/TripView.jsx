@@ -18,6 +18,7 @@ export default function TripView({ initialTrip, accessLevel }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [deletingTrip, setDeletingTrip] = useState(false);
 
   // "full" (master password) can do everything; "view" (this trip's own
   // password) is read-only — every mutating control below is hidden for it.
@@ -45,6 +46,23 @@ export default function TripView({ initialTrip, accessLevel }) {
     if (!confirm(`Remove "${item.title}" from this trip?`)) return;
     await fetch(`/api/items/${item.id}`, { method: "DELETE" });
     refresh();
+  }
+
+  async function handleDeleteTrip() {
+    if (!confirm(`Delete "${trip.name}" and everything in it? This can't be undone.`)) return;
+    setDeletingTrip(true);
+    try {
+      const res = await fetch(`/api/trips/${trip.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Failed to delete trip");
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } finally {
+      setDeletingTrip(false);
+    }
   }
 
   async function handleResolvePhoto(item) {
@@ -108,6 +126,13 @@ export default function TripView({ initialTrip, accessLevel }) {
             className="text-sm text-stone-500 hover:text-stone-700 underline disabled:opacity-50 self-center"
           >
             {loggingOut ? "Logging out…" : "Log out"}
+          </button>
+          <button
+            onClick={handleDeleteTrip}
+            disabled={deletingTrip}
+            className="text-sm text-red-600 hover:text-red-700 underline disabled:opacity-50 self-center"
+          >
+            {deletingTrip ? "Deleting…" : "Delete trip"}
           </button>
         </div>
       )}

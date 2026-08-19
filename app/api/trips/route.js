@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uniqueTripSlug } from "@/lib/slug";
 import { getSettings } from "@/lib/settings";
+import { resolveLocationPhoto } from "@/lib/photos";
 
 export async function GET() {
   const trips = await prisma.trip.findMany({
@@ -28,6 +29,16 @@ export async function POST(request) {
     return NextResponse.json({ error: "Incorrect master password." }, { status: 401 });
   }
 
+  // Auto-fill a cover photo from the destination (falling back to the trip
+  // name) the same way itinerary items already get real photos, unless one
+  // was explicitly supplied.
+  let coverPhoto = body.coverPhoto || null;
+  if (!coverPhoto && settings.googleMapsApiKey) {
+    const query = body.destination?.trim() || body.name.trim();
+    const resolved = await resolveLocationPhoto({ venueName: query }, settings.googleMapsApiKey);
+    if (resolved) coverPhoto = resolved.photoUrl;
+  }
+
   const slug = await uniqueTripSlug(body.name.trim());
   const trip = await prisma.trip.create({
     data: {
@@ -36,7 +47,7 @@ export async function POST(request) {
       destination: body.destination || null,
       startDate: body.startDate ? new Date(body.startDate) : null,
       endDate: body.endDate ? new Date(body.endDate) : null,
-      coverPhoto: body.coverPhoto || null,
+      coverPhoto,
     },
   });
   return NextResponse.json(trip, { status: 201 });
