@@ -13,6 +13,7 @@ export default function TripPasswordModal({ tripId, sharePassword, onClose, onCh
   const [message, setMessage] = useState(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resyncs the input when the trip's saved password changes underneath it
     setPasswordInput(sharePassword || "");
   }, [sharePassword]);
 

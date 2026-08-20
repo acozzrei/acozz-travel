@@ -50,6 +50,7 @@ export default function ShareModal({ tripId, tripName, tripSlug, shareToken, onC
   // token yet, so opening "Share" on an unshared trip generates the link
   // right away instead of requiring a second click.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount when opened without a token yet
     if (!shareToken) enableSharing();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

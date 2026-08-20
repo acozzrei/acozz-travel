@@ -29,7 +29,7 @@ export default async function HomePage() {
       {trips.length === 0 && (
         <div className="card p-8 flex flex-col items-center text-center gap-4 mb-8">
           <p className="text-stone-600 max-w-md">
-            No trips yet. Start a blank one, or add your upcoming Grand Cayman trip — it's
+            No trips yet. Start a blank one, or add your upcoming Grand Cayman trip — it&apos;s
             already built from your real booking confirmation emails, with real photos.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">

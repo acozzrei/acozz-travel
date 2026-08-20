@@ -9,42 +9,29 @@ which is waiting for DNS to propagate.
 
 ---
 
-## 0. What has to change before this can go live
+## 0. Current status
 
-The app currently uses **SQLite** (`prisma/dev.db`, a plain file). That's
-great for local dev but doesn't work on Vercel: Vercel's servers are
-stateless and ephemeral, so a SQLite file written at runtime disappears
-between requests (or is even read-only). Before deploying, you need to
-switch the database to **Postgres**. Everything else — the code, the
-Settings-page API keys, your Grand Cayman trip data — works exactly the
-same.
+This has already been done once: the app is live at **acozztravel.com**,
+`prisma/schema.prisma` is already on `provider = "postgresql"`, and
+`prisma/migrations/` already contains Postgres migrations applied to a real
+Neon database. This walkthrough is kept for reference — e.g. if you're
+setting up a brand-new environment (a second Vercel project, a staging
+database) from this same codebase. In that case skip step 3b's schema/
+migration-file changes (already done) and just point a fresh `DATABASE_URL`
+at your new Postgres instance, then run `npx prisma migrate deploy` (not
+`migrate dev --name init`) to apply the existing migrations to it.
 
 ---
 
 ## 1. Push the code to GitHub
 
-Vercel deploys from a Git repo (you can also deploy from your local machine
-with the `vercel` CLI, but GitHub gives you auto-deploys on every push,
-which is worth having).
-
-```bash
-cd travel-itinerary
-git init                       # if this folder isn't already a git repo
-git add .
-git commit -m "Initial commit"
-```
-
-Create a new empty repo on GitHub (github.com/new — don't initialize it with
-a README), then:
-
-```bash
-git remote add origin https://github.com/<your-username>/<repo-name>.git
-git branch -M main
-git push -u origin main
-```
-
-Make sure `.gitignore` excludes `node_modules/`, `.next/`, and
-`prisma/dev.db` (it already does in this project).
+Already done — this repo's `origin` remote points at
+`github.com/acozzrei/acozz-travel`, and Vercel auto-deploys on every push to
+`main`. (If you're ever setting this up fresh against a new repo: create an
+empty one on GitHub, `git remote add origin <url>`, `git push -u origin
+main`. `.gitignore` already excludes `node_modules/`, `.next/`, and `.env*`
+— there's no `prisma/dev.db` anymore since the SQLite prototype was
+retired.)
 
 ---
 
@@ -73,55 +60,25 @@ If you'd rather use a database you already run elsewhere (Supabase, Neon
 directly, RDS, etc.), that's fine too — you'll just add `DATABASE_URL`
 manually as an environment variable in step 3c.
 
-### 3b. Switch Prisma's provider from SQLite to Postgres
+### 3b. Apply the existing migrations to your Postgres database
 
-Locally, in `prisma/schema.prisma`, change:
+`prisma/schema.prisma` is already `provider = "postgresql"`, and
+`prisma/migrations/` already has the full set of Postgres migrations
+(`Trip`, `ItineraryItem`, `Settings`, `ImportedEmail`, plus the later
+share-password/slug/master-password additions) — nothing to change in code.
 
-```prisma
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
-
-to:
-
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-The existing SQL migration files in `prisma/migrations/` were generated for
-SQLite and contain SQLite-specific syntax that Postgres will reject, so
-delete that folder and regenerate a fresh migration against the real
-Postgres database:
-
-```bash
-rm -rf prisma/migrations
-```
-
-Set your local shell's `DATABASE_URL` to the Postgres connection string
-Vercel gave you (Storage tab → your database → `.env.local` tab has a
-copy-pasteable value — grab the one ending in `?sslmode=require`), then:
+Set your local shell's `DATABASE_URL` to the Postgres connection string for
+the database you're targeting (Storage tab → your database → `.env.local`
+tab has a copy-pasteable value — grab the one ending in `?sslmode=require`),
+then apply the existing migrations to it:
 
 ```bash
 export DATABASE_URL="postgres://...your-connection-string...?sslmode=require"
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 ```
 
-This creates a new, correct Postgres migration and applies it, creating all
-the tables (`Trip`, `ItineraryItem`, `Settings`, `ImportedEmail`) in your
-production database.
-
-Commit the new migration folder and the schema change:
-
-```bash
-git add prisma/schema.prisma prisma/migrations
-git commit -m "Switch to Postgres for deployment"
-git push
-```
+This runs the existing migration files against that database — no new
+migration to generate or commit for this step.
 
 ### 3c. Environment variables in Vercel
 

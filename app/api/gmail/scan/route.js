@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { scanForBookingCandidates } from "@/lib/gmail";
 import { DEMO_GMAIL_CANDIDATES } from "@/lib/demoData";
+import { loadTripAccess } from "@/lib/shareAuth";
 
 function redirectUriFor(request) {
   const url = new URL(request.url);
@@ -10,6 +11,13 @@ function redirectUriFor(request) {
 }
 
 export async function POST(request) {
+  const { tripId } = await request.json().catch(() => ({}));
+  const { trip, accessLevel } = await loadTripAccess(tripId);
+  if (!trip) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (accessLevel !== "full") {
+    return NextResponse.json({ error: "Full access required" }, { status: 401 });
+  }
+
   const settings = await getSettings();
   const alreadyImported = new Set((await prisma.importedEmail.findMany()).map((r) => r.gmailMsgId));
 

@@ -23,8 +23,13 @@ export default function GmailImportPanel({ tripId, onClose, onImported }) {
 
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount loading flag, no simpler alternative
     setLoading(true);
-    fetch("/api/gmail/scan", { method: "POST" })
+    fetch("/api/gmail/scan", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tripId }),
+    })
       .then(async (res) => {
         if (!res.ok) throw new Error((await res.json()).error || "Couldn't scan Gmail");
         return res.json();
@@ -39,7 +44,7 @@ export default function GmailImportPanel({ tripId, onClose, onImported }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [tripId]);
 
   async function importCandidate(candidate) {
     setBusyId(candidate.gmailMsgId);
@@ -65,7 +70,7 @@ export default function GmailImportPanel({ tripId, onClose, onImported }) {
       await fetch("/api/gmail/dismiss", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ gmailMsgId: candidate.gmailMsgId }),
+        body: JSON.stringify({ gmailMsgId: candidate.gmailMsgId, tripId }),
       });
       setCandidates((cs) => cs.filter((c) => c.gmailMsgId !== candidate.gmailMsgId));
     } finally {

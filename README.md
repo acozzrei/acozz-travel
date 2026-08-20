@@ -12,9 +12,13 @@ my Grand Cayman trip"** on the home page to load it in.
 
 ## Quick start
 
+Requires a Postgres database ([Neon](https://neon.tech) is what this project
+uses, but any Postgres works). Set `DATABASE_URL` in `.env` to its connection
+string, then:
+
 ```bash
 npm install
-npx prisma migrate deploy   # creates prisma/dev.db (SQLite)
+npx prisma migrate deploy   # applies migrations to your Postgres database
 npm run dev                 # http://localhost:3000
 ```
 
@@ -100,7 +104,7 @@ non-templated emails.
 ## How it's built
 
 - **Next.js (App Router)** — single app, frontend + API routes together.
-- **Prisma + SQLite** for storage (`prisma/schema.prisma`). Trip →
+- **Prisma + Postgres** for storage (`prisma/schema.prisma`). Trip →
   ItineraryItem, plus a single-row Settings table and an ImportedEmail
   table that tracks which Gmail messages have already been reviewed.
 - **`lib/gmailParsers.js`** — the email → structured-booking heuristics
@@ -125,21 +129,15 @@ storing an IANA timezone alongside each item and using a library like
 
 ## Deploying for real
 
-See [DEPLOY.md](./DEPLOY.md) for the full walkthrough (Vercel + Postgres +
-a custom domain). Short version:
+Already live at **acozztravel.com** on Vercel, backed by a Neon Postgres
+database — see [DEPLOY.md](./DEPLOY.md) for how that was originally set up
+(useful if you ever need to redo it from scratch, e.g. a new environment).
 
-1. SQLite won't survive Vercel's ephemeral filesystem, so swap the Prisma
-   datasource to Postgres first (`prisma/schema.prisma`, `provider =
-   "postgresql"`), delete `prisma/migrations/` (it's SQLite-flavored SQL),
-   and run `npx prisma migrate dev --name init` once against a real
-   Postgres connection string (Vercel's own Postgres integration, powered
-   by Neon, is the easiest — it hands you the `DATABASE_URL` directly).
-2. Push the code to a GitHub repo and import it in Vercel, or run
-   `vercel deploy` from this folder.
-3. Set `DATABASE_URL` as an environment variable in Vercel — everything
-   else (Google Maps key, Gmail OAuth credentials, Claude key) stays in the
-   app's own Settings table, not environment variables.
-4. Update the Gmail OAuth Client's authorized redirect URI to your real
-   domain's `/api/gmail/callback`.
-5. Add your domain in Vercel's Domains tab and create the DNS record it
-   gives you with your registrar.
+Ongoing deploys are just `git push` to `main` — Vercel auto-builds and
+redeploys. The build only runs `prisma generate` (see `package.json`), not
+`migrate deploy`, so a schema change needs one extra manual step: generate
+the migration locally (`npx prisma migrate dev --name <description>`,
+ideally against a separate dev database), commit the new
+`prisma/migrations/` folder, then run `npx prisma migrate deploy` yourself
+against the production `DATABASE_URL` before or right after pushing, so the
+live database's schema doesn't lag behind the deployed code.
