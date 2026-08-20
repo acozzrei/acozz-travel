@@ -38,6 +38,7 @@ function SettingsInner() {
     gmailClientSecret: "",
     anthropicApiKey: "",
     masterPassword: "",
+    viewPassword: "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -54,11 +55,11 @@ function SettingsInner() {
       .then((data) => {
         if (!data) return;
         setSettings(data);
-        // Unlike the other fields (blank = keep as-is), the master password
-        // field shows its current value directly, so it doubles as "what is
-        // it right now" — there's nothing secret about it once you're past
-        // the Settings login.
-        setForm((f) => ({ ...f, masterPassword: data.masterPassword || "" }));
+        // Unlike the other fields (blank = keep as-is), the master and view
+        // password fields show their current values directly, so they double
+        // as "what is it right now" — there's nothing secret about them once
+        // you're past the Settings login.
+        setForm((f) => ({ ...f, masterPassword: data.masterPassword || "", viewPassword: data.viewPassword || "" }));
       });
   }, [router]);
 
@@ -90,6 +91,7 @@ function SettingsInner() {
         gmailClientSecret: "",
         anthropicApiKey: "",
         masterPassword: data.masterPassword || "",
+        viewPassword: data.viewPassword || "",
       });
       setMessage({ type: "ok", text: "Saved." });
     } catch {
@@ -144,7 +146,8 @@ function SettingsInner() {
           Every trip now requires a password to open. This master password unlocks{" "}
           <strong>every</strong> trip with full access (Add/Edit/Delete/Import/Share). Each trip also has
           its own separate password (set from that trip&apos;s own page) that only grants view-only access.
-          It also protects this Settings page itself once set.
+          It also protects this Settings page itself once set, and the home page&apos;s trip list, alongside
+          the app-wide view password below.
         </p>
         <label className="text-sm font-medium text-stone-700 flex flex-col gap-1">
           Master password
@@ -157,6 +160,20 @@ function SettingsInner() {
           />
           <span className="text-xs text-stone-400 font-normal">
             Shown in full so you can hand it out — clear this field and save to remove it.
+          </span>
+        </label>
+        <label className="text-sm font-medium text-stone-700 flex flex-col gap-1">
+          App-wide view password
+          <input
+            type="text"
+            value={form.viewPassword}
+            onChange={(e) => setForm((f) => ({ ...f, viewPassword: e.target.value }))}
+            placeholder="No view password set"
+            className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
+          />
+          <span className="text-xs text-stone-400 font-normal">
+            Grants read-only access to the trip list at the home page&apos;s login screen — separate from
+            any individual trip&apos;s own view-only password.
           </span>
         </label>
       </section>

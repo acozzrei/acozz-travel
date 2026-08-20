@@ -76,6 +76,12 @@ model Settings {
   // grants editing rights (Add/Edit/Delete/Import/Share), unlike a trip's own
   // regular password (Trip.sharePassword) which only grants view-only access.
   masterPassword        String?
+  // App-wide read-only password: gates the home page (trip list) itself,
+  // granting "view" there. masterPassword grants "edit" at that same gate —
+  // there's no separate app-wide edit password, it's the one above reused.
+  // Unrelated to Trip.sharePassword, which still separately gates one
+  // specific trip's own page for someone who only has that trip's link.
+  viewPassword          String?
   updatedAt             DateTime @updatedAt
 }
 

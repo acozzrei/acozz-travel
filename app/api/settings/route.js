@@ -10,7 +10,7 @@ export async function GET() {
   return NextResponse.json(publicSettings(settings));
 }
 
-const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey", "masterPassword"];
+const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey", "masterPassword", "viewPassword"];
 
 export async function POST(request) {
   if (!(await getRequestSettingsAccess())) {

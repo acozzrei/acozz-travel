@@ -1,0 +1,11 @@
+-- AlterTable
+-- Reconstructs a migration that was applied by hand directly against the
+-- database (not through `prisma migrate`) during early Postgres migration
+-- work, and so was never saved as a file here. Without it, replaying the
+-- migration history from scratch fails at 20260819040000_readd_share_password
+-- with "column already exists", since that migration re-adds a column this
+-- one is supposed to have dropped first. This file doesn't change the real
+-- database (see the accompanying `prisma migrate resolve --applied` step) —
+-- it only restores an accurate history so `prisma migrate dev`'s shadow
+-- database can replay it.
+ALTER TABLE "Trip" DROP COLUMN "sharePassword";

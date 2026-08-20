@@ -1,14 +1,21 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import NewTripForm from "@/components/NewTripForm";
 import SeedDemoButton from "@/components/SeedDemoButton";
 import { formatRange } from "@/lib/dates";
+import { getSettings } from "@/lib/settings";
+import { getRequestAppAccess } from "@/lib/appAuth";
 
 // This list changes whenever a trip is added/edited, so always render fresh
 // rather than serving a build-time snapshot.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const settings = await getSettings();
+  const role = await getRequestAppAccess(settings);
+  if (!role) redirect("/login");
+
   const trips = await prisma.trip.findMany({
     orderBy: { startDate: "asc" },
     include: { _count: { select: { items: true } } },
@@ -18,12 +25,9 @@ export default async function HomePage() {
     <div className="max-w-5xl mx-auto px-5 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Your trips</h1>
-          <p className="text-stone-500 text-sm mt-1">
-            Build itineraries, pull in real bookings from Gmail, see real photos of every place.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">Trips</h1>
         </div>
-        <NewTripForm />
+        {role === "edit" && <NewTripForm />}
       </div>
 
       {trips.length === 0 && (
