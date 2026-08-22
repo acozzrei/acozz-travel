@@ -81,9 +81,6 @@ export default function TripView({ initialTrip, accessLevel }) {
 
       {!canEdit && (
         <div className="flex flex-wrap items-center gap-3 bg-stone-100 rounded-lg px-3 py-2 mb-4">
-          <p className="text-sm text-stone-500">
-            Viewing with this trip&apos;s password — read-only. The master password unlocks full access.
-          </p>
           <button
             onClick={logout}
             disabled={loggingOut}
