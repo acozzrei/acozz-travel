@@ -37,11 +37,13 @@ function SettingsInner() {
     gmailClientId: "",
     gmailClientSecret: "",
     anthropicApiKey: "",
-    masterPassword: "",
-    viewPassword: "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+
+  const [pwForm, setPwForm] = useState({ currentMasterPassword: "", masterNew: "", viewNew: "" });
+  const [pwSavingTarget, setPwSavingTarget] = useState(null);
+  const [pwMessage, setPwMessage] = useState(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -55,11 +57,6 @@ function SettingsInner() {
       .then((data) => {
         if (!data) return;
         setSettings(data);
-        // Unlike the other fields (blank = keep as-is), the master and view
-        // password fields show their current values directly, so they double
-        // as "what is it right now" — there's nothing secret about them once
-        // you're past the Settings login.
-        setForm((f) => ({ ...f, masterPassword: data.masterPassword || "", viewPassword: data.viewPassword || "" }));
       });
   }, [router]);
 
@@ -90,8 +87,6 @@ function SettingsInner() {
         gmailClientId: "",
         gmailClientSecret: "",
         anthropicApiKey: "",
-        masterPassword: data.masterPassword || "",
-        viewPassword: data.viewPassword || "",
       });
       setMessage({ type: "ok", text: "Saved." });
     } catch {
@@ -111,6 +106,35 @@ function SettingsInner() {
     const data = await res.json();
     if (data.url) window.location.href = data.url;
     else setMessage({ type: "error", text: data.error });
+  }
+
+  async function changePassword(target) {
+    const newPassword = target === "master" ? pwForm.masterNew : pwForm.viewNew;
+    if (!newPassword.trim()) return;
+    setPwSavingTarget(target);
+    setPwMessage(null);
+    try {
+      const res = await fetch("/api/settings/change-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ currentMasterPassword: pwForm.currentMasterPassword, target, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPwMessage({ type: "error", text: data.error || "Couldn't change the password." });
+        return;
+      }
+      // Never echo the new password back — just clear the fields and refetch
+      // the redacted settings so the rest of the page reflects the change.
+      setPwForm({ currentMasterPassword: "", masterNew: "", viewNew: "" });
+      setPwMessage({ type: "ok", text: target === "master" ? "Master password updated." : "View password updated." });
+      const fresh = await fetch("/api/settings");
+      if (fresh.ok) setSettings(await fresh.json());
+    } catch {
+      setPwMessage({ type: "error", text: "Couldn't change the password." });
+    } finally {
+      setPwSavingTarget(null);
+    }
   }
 
   if (!settings) return <div className="max-w-2xl mx-auto px-5 py-10 text-stone-500">Loading…</div>;
@@ -143,39 +167,88 @@ function SettingsInner() {
       <section className="card p-5 flex flex-col gap-3">
         <h2 className="font-semibold">Trip access</h2>
         <p className="text-sm text-stone-500">
-          Every trip now requires a password to open. This master password unlocks{" "}
-          <strong>every</strong> trip with full access (Add/Edit/Delete/Import/Share). Each trip also has
-          its own separate password (set from that trip&apos;s own page) that only grants view-only access.
-          It also protects this Settings page itself once set, and the home page&apos;s trip list, alongside
-          the app-wide view password below.
+          Every trip now requires a password to open. The master password unlocks{" "}
+          <strong>every</strong> trip with full access (Add/Edit/Delete/Import/Share), the home page&apos;s
+          trip list, and this Settings page. The app-wide view password grants read-only access to the
+          home page&apos;s trip list. Each trip also has its own separate password (set from that trip&apos;s
+          own page) that only grants view-only access to that one trip.
         </p>
+        <div className="text-sm text-stone-700 flex items-center gap-2">
+          <span className="font-medium">Master password:</span>
+          <span className={settings.masterPasswordSet ? "text-teal-700" : "text-stone-400"}>
+            {settings.masterPasswordSet ? "Set" : "Not set — no one has full access yet"}
+          </span>
+        </div>
+        <div className="text-sm text-stone-700 flex items-center gap-2">
+          <span className="font-medium">App-wide view password:</span>
+          <span className={settings.viewPasswordSet ? "text-teal-700" : "text-stone-400"}>
+            {settings.viewPasswordSet ? "Set" : "Not set"}
+          </span>
+        </div>
+        <p className="text-xs text-stone-400">
+          Set or change either one under &quot;Change password&quot; below — for security, neither is
+          displayed here once set.
+        </p>
+      </section>
+
+      <section className="card p-5 flex flex-col gap-3">
+        <h2 className="font-semibold">Change password</h2>
+        <p className="text-sm text-stone-500">
+          Enter the current master password once to change either password below.
+        </p>
+        {pwMessage && (
+          <p className={`text-sm rounded-lg px-3 py-2 ${pwMessage.type === "ok" ? "bg-teal-50 text-teal-800" : "bg-red-50 text-red-700"}`}>
+            {pwMessage.text}
+          </p>
+        )}
         <label className="text-sm font-medium text-stone-700 flex flex-col gap-1">
-          Master password
+          Current master password
           <input
-            type="text"
-            value={form.masterPassword}
-            onChange={(e) => setForm((f) => ({ ...f, masterPassword: e.target.value }))}
-            placeholder="No master password set — no one has full access yet"
+            type="password"
+            value={pwForm.currentMasterPassword}
+            onChange={(e) => setPwForm((f) => ({ ...f, currentMasterPassword: e.target.value }))}
+            placeholder={settings.masterPasswordSet ? "Required to change either password" : "No master password set yet — leave blank"}
             className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
           />
-          <span className="text-xs text-stone-400 font-normal">
-            Shown in full so you can hand it out — clear this field and save to remove it.
-          </span>
         </label>
-        <label className="text-sm font-medium text-stone-700 flex flex-col gap-1">
-          App-wide view password
-          <input
-            type="text"
-            value={form.viewPassword}
-            onChange={(e) => setForm((f) => ({ ...f, viewPassword: e.target.value }))}
-            placeholder="No view password set"
-            className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
-          />
-          <span className="text-xs text-stone-400 font-normal">
-            Grants read-only access to the trip list at the home page&apos;s login screen — separate from
-            any individual trip&apos;s own view-only password.
-          </span>
-        </label>
+        <div className="flex items-end gap-2">
+          <label className="text-sm font-medium text-stone-700 flex flex-col gap-1 flex-1">
+            New master password
+            <input
+              type="password"
+              value={pwForm.masterNew}
+              onChange={(e) => setPwForm((f) => ({ ...f, masterNew: e.target.value }))}
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => changePassword("master")}
+            disabled={pwSavingTarget !== null || !pwForm.masterNew.trim()}
+            className="rounded-full border border-teal-600 text-teal-700 px-4 py-2 text-sm font-medium hover:bg-teal-50 transition disabled:opacity-50"
+          >
+            {pwSavingTarget === "master" ? "Updating…" : "Update"}
+          </button>
+        </div>
+        <div className="flex items-end gap-2">
+          <label className="text-sm font-medium text-stone-700 flex flex-col gap-1 flex-1">
+            New view password
+            <input
+              type="password"
+              value={pwForm.viewNew}
+              onChange={(e) => setPwForm((f) => ({ ...f, viewNew: e.target.value }))}
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm font-normal"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => changePassword("view")}
+            disabled={pwSavingTarget !== null || !pwForm.viewNew.trim()}
+            className="rounded-full border border-teal-600 text-teal-700 px-4 py-2 text-sm font-medium hover:bg-teal-50 transition disabled:opacity-50"
+          >
+            {pwSavingTarget === "view" ? "Updating…" : "Update"}
+          </button>
+        </div>
       </section>
 
       <section className="card p-5 flex flex-col gap-3">

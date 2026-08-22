@@ -31,6 +31,10 @@ model Trip {
   // grants full access to every trip instead. Unrelated to sharing
   // (Trip.shareToken / /share/[slug]), which still needs no password at all.
   sharePassword String?
+  // Manual display order on the home page's trip list, set by dragging
+  // cards there (edit role only). Backfilled once from the prior
+  // startDate-based order; new trips are appended after the current max.
+  order       Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   items       ItineraryItem[]

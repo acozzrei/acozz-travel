@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import NewTripForm from "@/components/NewTripForm";
 import SeedDemoButton from "@/components/SeedDemoButton";
-import { formatRange } from "@/lib/dates";
+import TripList from "@/components/TripList";
 import { getSettings } from "@/lib/settings";
 import { getRequestAppAccess } from "@/lib/appAuth";
 
@@ -17,7 +16,7 @@ export default async function HomePage() {
   if (!role) redirect("/login");
 
   const trips = await prisma.trip.findMany({
-    orderBy: { startDate: "asc" },
+    orderBy: { order: "asc" },
     include: { _count: { select: { items: true } } },
   });
 
@@ -42,31 +41,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {trips.map((trip) => (
-          <Link
-            key={trip.id}
-            href={`/trips/${trip.slug}`}
-            className="card overflow-hidden hover:shadow-md transition group"
-          >
-            <div className="h-36 bg-gradient-to-br from-teal-500 to-teal-700 relative">
-              {trip.coverPhoto && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={trip.coverPhoto} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              )}
-              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition" />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold">{trip.name}</h3>
-              {trip.destination && <p className="text-sm text-stone-500">{trip.destination}</p>}
-              <div className="mt-2 flex items-center justify-between text-xs text-stone-400">
-                <span>{formatRange(trip.startDate, trip.endDate) || "No dates yet"}</span>
-                <span>{trip._count.items} item{trip._count.items === 1 ? "" : "s"}</span>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <TripList initialTrips={trips} canReorder={role === "edit"} />
     </div>
   );
 }

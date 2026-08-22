@@ -24,6 +24,9 @@ export async function POST(request) {
     return NextResponse.json({ trip: existing, created: false });
   }
 
+  const { _max } = await prisma.trip.aggregate({ _max: { order: true } });
+  const order = (_max.order ?? -1) + 1;
+
   const slug = await uniqueTripSlug(DEMO_TRIP.name);
   const trip = await prisma.trip.create({
     data: {
@@ -33,6 +36,7 @@ export async function POST(request) {
       startDate: new Date(DEMO_TRIP.startDate),
       endDate: new Date(DEMO_TRIP.endDate),
       coverPhoto: DEMO_TRIP.coverPhoto,
+      order,
       items: {
         create: DEMO_ITEMS.map((item) => ({
           type: item.type,

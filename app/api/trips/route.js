@@ -6,7 +6,7 @@ import { resolveLocationPhoto } from "@/lib/photos";
 
 export async function GET() {
   const trips = await prisma.trip.findMany({
-    orderBy: { startDate: "asc" },
+    orderBy: { order: "asc" },
     include: { _count: { select: { items: true } } },
   });
   return NextResponse.json(trips);
@@ -39,6 +39,10 @@ export async function POST(request) {
     if (resolved) coverPhoto = resolved.photoUrl;
   }
 
+  // New trips go to the end of the manual drag order, not the front.
+  const { _max } = await prisma.trip.aggregate({ _max: { order: true } });
+  const order = (_max.order ?? -1) + 1;
+
   const slug = await uniqueTripSlug(body.name.trim());
   const trip = await prisma.trip.create({
     data: {
@@ -48,6 +52,7 @@ export async function POST(request) {
       startDate: body.startDate ? new Date(body.startDate) : null,
       endDate: body.endDate ? new Date(body.endDate) : null,
       coverPhoto,
+      order,
     },
   });
   return NextResponse.json(trip, { status: 201 });
