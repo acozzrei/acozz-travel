@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function NewTripForm({ onDone }) {
+export default function NewTripForm({
+  triggerLabel = "+ New trip",
+  triggerClassName = "rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 transition",
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -42,11 +45,8 @@ export default function NewTripForm({ onDone }) {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 transition"
-      >
-        + New trip
+      <button onClick={() => setOpen(true)} className={triggerClassName}>
+        {triggerLabel}
       </button>
     );
   }

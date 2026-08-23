@@ -8,6 +8,7 @@ import ShareModal from "@/components/ShareModal";
 import TripPasswordModal from "@/components/TripPasswordModal";
 import TripCoverBanner from "@/components/TripCoverBanner";
 import ItineraryTimeline from "@/components/ItineraryTimeline";
+import EditableItinerary from "@/components/EditableItinerary";
 
 export default function TripView({ initialTrip, accessLevel }) {
   const router = useRouter();
@@ -134,12 +135,17 @@ export default function TripView({ initialTrip, accessLevel }) {
         </div>
       )}
 
-      <ItineraryTimeline
-        items={trip.items}
-        onEdit={canEdit ? setEditingItem : undefined}
-        onDelete={canEdit ? handleDelete : undefined}
-        onResolvePhoto={canEdit ? handleResolvePhoto : undefined}
-      />
+      {canEdit ? (
+        <EditableItinerary
+          tripId={trip.id}
+          items={trip.items}
+          onEdit={setEditingItem}
+          onDelete={handleDelete}
+          onResolvePhoto={handleResolvePhoto}
+        />
+      ) : (
+        <ItineraryTimeline items={trip.items} />
+      )}
 
       {canEdit && addOpen && (
         <AddItemForm

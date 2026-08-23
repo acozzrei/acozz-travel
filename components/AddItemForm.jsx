@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-const TYPES = ["activity", "event", "dinner", "lodging", "transport", "other"];
+const TYPES = ["breakfast", "lunch", "dinner", "activity", "event", "lodging", "transport", "other"];
 
 // Itinerary times are stored as the destination's own wall-clock value
 // using UTC as the storage convention (not the browser's local time), so

@@ -1,18 +1,22 @@
 "use client";
 
 const TYPE_LABELS = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
   activity: "Activity",
   event: "Event",
-  dinner: "Dinner",
   lodging: "Lodging",
   transport: "Transport",
   other: "Other",
 };
 
 const TYPE_COLORS = {
+  breakfast: "bg-orange-100 text-orange-800",
+  lunch: "bg-lime-100 text-lime-800",
+  dinner: "bg-rose-100 text-rose-800",
   activity: "bg-amber-100 text-amber-800",
   event: "bg-violet-100 text-violet-800",
-  dinner: "bg-rose-100 text-rose-800",
   lodging: "bg-sky-100 text-sky-800",
   transport: "bg-emerald-100 text-emerald-800",
   other: "bg-stone-100 text-stone-700",

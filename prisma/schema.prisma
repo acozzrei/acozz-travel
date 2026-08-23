@@ -44,7 +44,7 @@ model ItineraryItem {
   id            String   @id @default(cuid())
   trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   tripId        String
-  type          String   // "activity" | "event" | "dinner" | "lodging" | "transport" | "other"
+  type          String   // "breakfast" | "lunch" | "dinner" | "activity" | "event" | "lodging" | "transport" | "other"
   title         String
   venueName     String?
   address       String?
@@ -60,6 +60,11 @@ model ItineraryItem {
   sourceEmailId String?
   sourceSender  String?
   status        String   @default("confirmed") // "confirmed" | "canceled" | "changed" | "pending"
+  // Manual position within its day, set by dragging in the itinerary editor
+  // (drag-and-drop persists this, plus startTime's date when moved to a
+  // different day). Generated itineraries are created with this already set
+  // to a sensible order (breakfast, activity, lunch, activity, dinner, ...).
+  order         Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
