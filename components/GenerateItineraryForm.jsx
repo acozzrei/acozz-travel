@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ACTIVITY_CATEGORIES, PRICE_LEVELS } from "@/lib/activityCategories";
 
 // Primary "New trip" flow: search any destination worldwide, pick dates,
 // and get a full day-by-day itinerary built from real nearby
@@ -16,6 +17,9 @@ export default function GenerateItineraryForm() {
   const [selected, setSelected] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [activitiesPerDay, setActivitiesPerDay] = useState(2);
+  const [maxPrice, setMaxPrice] = useState("");
+  const [activityTypes, setActivityTypes] = useState(["sightseeing"]);
   const [masterPassword, setMasterPassword] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
@@ -58,8 +62,17 @@ export default function GenerateItineraryForm() {
     setSelected(null);
     setStartDate("");
     setEndDate("");
+    setActivitiesPerDay(2);
+    setMaxPrice("");
+    setActivityTypes(["sightseeing"]);
     setMasterPassword("");
     setError(null);
+  }
+
+  function toggleActivityType(key) {
+    setActivityTypes((current) =>
+      current.includes(key) ? current.filter((k) => k !== key) : [...current, key]
+    );
   }
 
   async function generate(e) {
@@ -79,6 +92,9 @@ export default function GenerateItineraryForm() {
           destinationName: selected.description,
           startDate,
           endDate,
+          activitiesPerDay,
+          maxPrice,
+          activityTypes,
           masterPassword,
         }),
       });
@@ -182,6 +198,58 @@ export default function GenerateItineraryForm() {
               className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm disabled:bg-stone-50"
             />
           </label>
+        </div>
+
+        <div className="flex gap-2">
+          <label className="text-sm font-medium text-stone-600 flex-1">
+            Activities per day
+            <input
+              disabled={generating}
+              type="number"
+              min={0}
+              max={6}
+              value={activitiesPerDay}
+              onChange={(e) => setActivitiesPerDay(e.target.value)}
+              className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm disabled:bg-stone-50"
+            />
+          </label>
+          <label className="text-sm font-medium text-stone-600 flex-1">
+            Budget
+            <select
+              disabled={generating}
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm disabled:bg-stone-50"
+            >
+              {PRICE_LEVELS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <span className="text-sm font-medium text-stone-600">Kinds of activities</span>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {ACTIVITY_CATEGORIES.map((c) => (
+              <button
+                type="button"
+                key={c.key}
+                disabled={generating}
+                onClick={() => toggleActivityType(c.key)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium border transition disabled:opacity-50 ${
+                  activityTypes.includes(c.key)
+                    ? "bg-teal-600 text-white border-teal-600"
+                    : "bg-white text-stone-600 border-stone-300 hover:bg-stone-50"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {activityTypes.length === 0 && (
+            <p className="text-xs text-stone-400 mt-1">None picked — defaults to general sightseeing.</p>
+          )}
         </div>
 
         <label className="text-sm font-medium text-stone-600">
