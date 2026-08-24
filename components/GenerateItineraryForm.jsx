@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 // Primary "New trip" flow: search any destination worldwide, pick dates,
-// and get a full day-by-day itinerary generated from real nearby
-// restaurants/attractions (Google Places) assembled by Claude. See
-// components/NewTripForm.jsx for the plain blank-trip fallback shown
-// alongside this on the home page.
+// and get a full day-by-day itinerary built from real nearby
+// restaurants/attractions (Google Places) — no LLM involved, so nothing
+// is invented. See components/NewTripForm.jsx for the plain blank-trip
+// fallback shown alongside this on the home page.
 export default function GenerateItineraryForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -206,7 +206,7 @@ export default function GenerateItineraryForm() {
           {generating && (
             <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
           )}
-          {generating ? "Building your itinerary — this can take about a minute…" : "Generate itinerary"}
+          {generating ? "Building your itinerary…" : "Generate itinerary"}
         </button>
       </form>
     </div>

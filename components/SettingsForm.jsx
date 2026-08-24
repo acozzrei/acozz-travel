@@ -71,10 +71,19 @@ function SettingsInner() {
     setSaving(true);
     setMessage(null);
     try {
+      // Blank means "leave unchanged" (per the "leave blank to keep it"
+      // hint below each key field) — every field here starts blank on load
+      // regardless of whether a key is already saved, so a blank field must
+      // be omitted entirely rather than sent as "", which the API treats as
+      // "clear this key."
+      const payload = {};
+      for (const [key, value] of Object.entries(form)) {
+        if (value !== "") payload[key] = value;
+      }
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.status === 401) {
         router.replace("/settings/login");

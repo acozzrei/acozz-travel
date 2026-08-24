@@ -30,9 +30,6 @@ export async function POST(request) {
   if (!settings.googleMapsApiKey) {
     return NextResponse.json({ error: "Add a Google Maps API key in Settings first." }, { status: 400 });
   }
-  if (!settings.anthropicApiKey) {
-    return NextResponse.json({ error: "Add a Claude (Anthropic) API key in Settings first." }, { status: 400 });
-  }
 
   let destination, restaurants, activities;
   try {
@@ -51,16 +48,9 @@ export async function POST(request) {
 
   let days;
   try {
-    days = await generateItinerary({
-      destinationName,
-      startDate,
-      endDate,
-      restaurants,
-      activities,
-      anthropicApiKey: settings.anthropicApiKey,
-    });
+    days = generateItinerary({ startDate, endDate, restaurants, activities });
   } catch (err) {
-    return NextResponse.json({ error: `Couldn't generate the itinerary: ${err.message}` }, { status: 502 });
+    return NextResponse.json({ error: `Couldn't generate the itinerary: ${err.message}` }, { status: 400 });
   }
 
   // Cover photo for the trip itself only — resolving one per generated item
@@ -83,15 +73,6 @@ export async function POST(request) {
         venueName: item.venueName || null,
         address: item.address || null,
         startTime,
-        order: order++,
-      });
-    }
-    if (day.localNote) {
-      itemsData.push({
-        type: "other",
-        title: "Local tip (unverified — check locally)",
-        notes: day.localNote,
-        startTime: new Date(`${day.date}T23:00:00Z`),
         order: order++,
       });
     }
