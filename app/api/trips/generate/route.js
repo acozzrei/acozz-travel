@@ -34,16 +34,20 @@ export async function POST(request) {
     return NextResponse.json({ error: "Add a Claude (Anthropic) API key in Settings first." }, { status: 400 });
   }
 
-  const destination = await resolveDestination(placeId, settings.googleMapsApiKey);
-  if (!destination) {
-    return NextResponse.json({ error: "Couldn't resolve that destination." }, { status: 400 });
+  let destination, restaurants, activities;
+  try {
+    destination = await resolveDestination(placeId, settings.googleMapsApiKey);
+    if (!destination) {
+      return NextResponse.json({ error: "Couldn't resolve that destination." }, { status: 400 });
+    }
+    [restaurants, activities] = await Promise.all([
+      searchNearbyPlaces({ lat: destination.lat, lng: destination.lng, type: "restaurant" }, settings.googleMapsApiKey, { limit: 25 }),
+      searchNearbyPlaces({ lat: destination.lat, lng: destination.lng, type: "tourist_attraction" }, settings.googleMapsApiKey, { limit: 25 }),
+    ]);
+  } catch (err) {
+    return NextResponse.json({ error: `Google Places error: ${err.message}` }, { status: 502 });
   }
   const destinationName = (typedName || destination.name || "").trim() || destination.formattedAddress;
-
-  const [restaurants, activities] = await Promise.all([
-    searchNearbyPlaces({ lat: destination.lat, lng: destination.lng, type: "restaurant" }, settings.googleMapsApiKey, { limit: 25 }),
-    searchNearbyPlaces({ lat: destination.lat, lng: destination.lng, type: "tourist_attraction" }, settings.googleMapsApiKey, { limit: 25 }),
-  ]);
 
   let days;
   try {

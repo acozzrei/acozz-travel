@@ -31,13 +31,17 @@ export default function GenerateItineraryForm() {
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/places/search?q=${encodeURIComponent(query)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestions(data.results || []);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          // A real configuration problem (bad key, API not enabled, etc.) —
+          // surface it instead of just showing an empty, unexplained list.
+          setError(data.error || "Couldn't search destinations.");
+          return;
         }
+        setError(null);
+        setSuggestions(data.results || []);
       } catch {
-        // A failed autocomplete lookup just means no suggestions this
-        // keystroke — not worth surfacing as an error.
+        setError("Couldn't reach the destination search — check your connection.");
       }
     }, 300);
     return () => clearTimeout(debounceRef.current);

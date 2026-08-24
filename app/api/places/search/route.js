@@ -14,6 +14,10 @@ export async function GET(request) {
   }
 
   const q = new URL(request.url).searchParams.get("q") || "";
-  const results = await searchDestinations(q, settings.googleMapsApiKey);
-  return NextResponse.json({ results });
+  try {
+    const results = await searchDestinations(q, settings.googleMapsApiKey);
+    return NextResponse.json({ results });
+  } catch (err) {
+    return NextResponse.json({ error: `Google Places error: ${err.message}` }, { status: 502 });
+  }
 }
