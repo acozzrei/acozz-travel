@@ -90,6 +90,11 @@ model Settings {
   // in plaintext.
   gmailImapEmail        String?
   gmailImapPasswordEnc  String?
+  // Random data-encryption key (hex) the app generates itself on first Gmail
+  // connect, used to encrypt gmailImapPasswordEnc. GMAIL_IMAP_KEY, if set,
+  // overrides this — otherwise the app is fully self-sufficient and needs no
+  // extra env vars.
+  gmailImapDataKey      String?
   anthropicApiKey       String?
   // Duffel API key for live flight options in the trip planner. Null = the
   // planner falls back to Google Flights search links.

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { updateSettings } from "@/lib/settings";
+import { getSettings, updateSettings } from "@/lib/settings";
 import { getRequestSettingsAccess } from "@/lib/settingsAuth";
 import { testImapLogin } from "@/lib/gmailImap";
-import { encryptSecret } from "@/lib/imapSecrets";
+import { ensureDataKey, encryptSecret } from "@/lib/imapSecrets";
 
 // POST /api/gmail/imap-connect { email, password }
 // Verifies the Gmail address + app password with a real IMAP login, then
-// stores them (password encrypted with GMAIL_IMAP_KEY). This is the simple
-// alternative to the OAuth client ID/secret flow.
+// stores them (password encrypted; the app manages its own data-encryption
+// key, so no extra env vars are needed). This is the simple alternative to
+// the OAuth client ID/secret flow.
 export async function POST(request) {
   if (!(await getRequestSettingsAccess())) {
     return NextResponse.json({ error: "Password required" }, { status: 401 });
@@ -32,7 +33,8 @@ export async function POST(request) {
 
   let enc;
   try {
-    enc = encryptSecret(cleanPassword);
+    const settings = await getSettings();
+    enc = encryptSecret(cleanPassword, await ensureDataKey(settings));
   } catch (err) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

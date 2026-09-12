@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { scanForBookingCandidates } from "@/lib/gmail";
 import { scanImapForBookingCandidates } from "@/lib/gmailImap";
-import { decryptSecret } from "@/lib/imapSecrets";
+import { getDataKey, decryptSecret } from "@/lib/imapSecrets";
 import { DEMO_GMAIL_CANDIDATES } from "@/lib/demoData";
 import { loadTripAccess } from "@/lib/shareAuth";
 
@@ -31,7 +31,7 @@ export async function POST(request) {
   let mode;
   if (imapLive) {
     try {
-      const password = decryptSecret(settings.gmailImapPasswordEnc);
+      const password = decryptSecret(settings.gmailImapPasswordEnc, getDataKey(settings));
       const result = await scanImapForBookingCandidates(settings.gmailImapEmail, password, settings);
       candidates = result.candidates;
       mode = "live";
