@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import NewTripForm from "@/components/NewTripForm";
-import GenerateItineraryForm from "@/components/GenerateItineraryForm";
+import PlanTripFlow from "@/components/PlanTripFlow";
 import SeedDemoButton from "@/components/SeedDemoButton";
 import TripList from "@/components/TripList";
 import { getSettings } from "@/lib/settings";
@@ -29,7 +29,7 @@ export default async function HomePage() {
         </div>
         {role === "edit" && (
           <div className="flex items-center gap-3">
-            <GenerateItineraryForm />
+            <PlanTripFlow />
             <NewTripForm
               triggerLabel="or create a blank trip"
               triggerClassName="text-xs text-stone-400 hover:text-stone-600 underline"

@@ -37,6 +37,7 @@ function SettingsInner() {
     gmailClientId: "",
     gmailClientSecret: "",
     anthropicApiKey: "",
+    duffelApiKey: "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -96,6 +97,7 @@ function SettingsInner() {
         gmailClientId: "",
         gmailClientSecret: "",
         anthropicApiKey: "",
+        duffelApiKey: "",
       });
       setMessage({ type: "ok", text: "Saved." });
     } catch {
@@ -322,6 +324,22 @@ function SettingsInner() {
           onChange={(v) => setForm((f) => ({ ...f, anthropicApiKey: v }))}
           placeholder="sk-ant-…"
           set={settings.anthropicApiKeySet}
+        />
+      </section>
+
+      <section className="card p-5 flex flex-col gap-3">
+        <h2 className="font-semibold">Live flight options (optional)</h2>
+        <p className="text-sm text-stone-500">
+          Add a Duffel API key and the trip planner will show real nonstop vs. layover flight options with
+          live prices when you enter airport codes. Without it, the planner links out to Google Flights
+          instead.
+        </p>
+        <Field
+          label="Duffel API key"
+          value={form.duffelApiKey}
+          onChange={(v) => setForm((f) => ({ ...f, duffelApiKey: v }))}
+          placeholder="duffel_test_…"
+          set={settings.duffelApiKeySet}
         />
       </section>
 

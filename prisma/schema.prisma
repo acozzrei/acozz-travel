@@ -57,10 +57,14 @@ model ItineraryItem {
   confirmationNo String?
   photoUrl      String?
   photoSource   String?  // "places" | "streetview" | "email" | "placeholder" | "manual"
+  // From the trip planner: per-person estimate for meals/activities, per-night
+  // for lodging, whole-itinerary total for flights. Null = not estimated.
+  estimatedCost Float?
+  // "Reserve / check price" deep link captured when the option was picked.
+  bookingUrl    String?
   sourceEmailId String?
   sourceSender  String?
-  status        String   @default("confirmed") // "confirmed" | "canceled" | "changed" | "pending"
-  // Manual position within its day, set by dragging in the itinerary editor
+  status        String   @default("confirmed") // "confirmed" | "canceled" | "changed" | "pending"  // Manual position within its day, set by dragging in the itinerary editor
   // (drag-and-drop persists this, plus startTime's date when moved to a
   // different day). Generated itineraries are created with this already set
   // to a sensible order (breakfast, activity, lunch, activity, dinner, ...).
@@ -81,6 +85,9 @@ model Settings {
   gmailRefreshToken     String?
   gmailConnectedEmail   String?
   anthropicApiKey       String?
+  // Duffel API key for live flight options in the trip planner. Null = the
+  // planner falls back to Google Flights search links.
+  duffelApiKey          String?
   // Full-access password for every trip's page (/trips/[slug]) — matching it
   // grants editing rights (Add/Edit/Delete/Import/Share), unlike a trip's own
   // regular password (Trip.sharePassword) which only grants view-only access.

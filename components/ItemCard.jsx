@@ -112,6 +112,25 @@ export default function ItemCard({ item, onEdit, onDelete, onResolvePhoto }) {
           </p>
         )}
         {item.notes && <p className="text-sm text-stone-600 whitespace-pre-line">{item.notes}</p>}
+        {(item.estimatedCost != null || item.bookingUrl) && (
+          <div className="flex items-center gap-3 text-sm mt-1">
+            {item.estimatedCost != null && (
+              <span className="text-stone-600">
+                Est. ${Math.round(item.estimatedCost).toLocaleString()}
+              </span>
+            )}
+            {item.bookingUrl && (
+              <a
+                href={item.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal-700 underline hover:text-teal-800"
+              >
+                Book ↗
+              </a>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-3 text-xs text-stone-400 mt-auto pt-1">
           {item.confirmationNo && <span>Confirmation #{item.confirmationNo}</span>}
           {item.sourceSender && <span>via {item.sourceSender}</span>}

@@ -13,7 +13,7 @@ export async function GET() {
 // masterPassword and viewPassword are deliberately NOT editable here — they
 // can only be changed through /api/settings/change-password, which requires
 // re-entering the current master password as a confirmation step.
-const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey"];
+const EDITABLE = ["googleMapsApiKey", "gmailClientId", "gmailClientSecret", "anthropicApiKey", "duffelApiKey"];
 
 export async function POST(request) {
   if (!(await getRequestSettingsAccess())) {
