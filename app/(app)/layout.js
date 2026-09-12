@@ -19,9 +19,17 @@ export default async function AppLayout({ children }) {
           </Link>
           <nav className="flex items-center gap-4 text-sm text-stone-600">
             <Link href="/" className="hover:text-stone-900">Trips</Link>
-            {role === "edit" && (
+            {role === "edit" ? (
               <Link href="/settings" className="hover:text-stone-900">Settings</Link>
-            )}
+            ) : role === "view" ? (
+              <Link
+                href="/login"
+                title="You're logged in with the view-only password — log in with the master password for full access."
+                className="text-xs text-stone-400 border border-stone-200 rounded-full px-2 py-0.5 hover:text-stone-600 hover:border-stone-300"
+              >
+                View only
+              </Link>
+            ) : null}
           </nav>
         </div>
       </header>
