@@ -34,13 +34,17 @@ function SettingsInner() {
   const [settings, setSettings] = useState(null);
   const [form, setForm] = useState({
     googleMapsApiKey: "",
-    gmailClientId: "",
-    gmailClientSecret: "",
     anthropicApiKey: "",
     duffelApiKey: "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+
+  // Gmail IMAP login (address + app password) — the simple alternative to
+  // the old OAuth client ID/secret flow.
+  const [imapForm, setImapForm] = useState({ email: "", password: "" });
+  const [imapConnecting, setImapConnecting] = useState(false);
+  const [imapError, setImapError] = useState(null);
 
   const [pwForm, setPwForm] = useState({ currentMasterPassword: "", masterNew: "", viewNew: "" });
   const [pwSavingTarget, setPwSavingTarget] = useState(null);
@@ -94,8 +98,6 @@ function SettingsInner() {
       setSettings(data);
       setForm({
         googleMapsApiKey: "",
-        gmailClientId: "",
-        gmailClientSecret: "",
         anthropicApiKey: "",
         duffelApiKey: "",
       });
@@ -112,11 +114,36 @@ function SettingsInner() {
     router.push("/settings/login");
   }
 
-  async function connectGmail() {
-    const res = await fetch("/api/gmail/auth-url");
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    else setMessage({ type: "error", text: data.error });
+  async function connectImap() {
+    setImapConnecting(true);
+    setImapError(null);
+    try {
+      const res = await fetch("/api/gmail/imap-connect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: imapForm.email, password: imapForm.password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setImapError(data.error || "Couldn't connect to Gmail.");
+        return;
+      }
+      setImapForm({ email: "", password: "" });
+      const settingsRes = await fetch("/api/settings");
+      if (settingsRes.ok) setSettings(await settingsRes.json());
+      setMessage({ type: "ok", text: `Gmail connected (${data.email}).` });
+    } catch {
+      setImapError("Couldn't connect to Gmail.");
+    } finally {
+      setImapConnecting(false);
+    }
+  }
+
+  async function disconnectImap() {
+    await fetch("/api/gmail/imap-disconnect", { method: "POST" });
+    const settingsRes = await fetch("/api/settings");
+    if (settingsRes.ok) setSettings(await settingsRes.json());
+    setMessage({ type: "ok", text: "Gmail disconnected." });
   }
 
   async function changePassword(target) {
@@ -281,34 +308,63 @@ function SettingsInner() {
       <section className="card p-5 flex flex-col gap-3">
         <h2 className="font-semibold">Gmail import</h2>
         <p className="text-sm text-stone-500">
-          Create an OAuth 2.0 Client ID (type &quot;Web application&quot;) in the Google Cloud Console, add
-          this app&apos;s <code>/api/gmail/callback</code> URL as an authorized redirect URI, and enable the{" "}
-          <strong>Gmail API</strong>.
-        </p>
-        <Field
-          label="Gmail OAuth Client ID"
-          value={form.gmailClientId}
-          onChange={(v) => setForm((f) => ({ ...f, gmailClientId: v }))}
-          set={settings.gmailClientIdSet}
-        />
-        <Field
-          label="Gmail OAuth Client Secret"
-          value={form.gmailClientSecret}
-          onChange={(v) => setForm((f) => ({ ...f, gmailClientSecret: v }))}
-          set={settings.gmailClientSecretSet}
-        />
-        <div className="flex items-center gap-3 pt-1">
-          <button
-            type="button"
-            onClick={connectGmail}
-            className="rounded-full border border-teal-600 text-teal-700 px-4 py-2 text-sm font-medium hover:bg-teal-50 transition"
+          Log in with your Gmail address and an <strong>app password</strong> — no Google Cloud setup
+          needed. Turn on 2-Step Verification, then create an app password at{" "}
+          <a
+            href="https://myaccount.google.com/apppasswords"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
           >
-            {settings.gmailConnected ? "Reconnect Gmail" : "Connect Gmail"}
-          </button>
-          {settings.gmailConnected && (
-            <span className="text-sm text-stone-500">Connected: {settings.gmailConnectedEmail}</span>
-          )}
-        </div>
+            myaccount.google.com/apppasswords
+          </a>{" "}
+          and paste the 16-character code below. It&apos;s encrypted before it&apos;s stored.
+        </p>
+        {settings.gmailImapConnected ? (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-stone-500">Connected: {settings.gmailImapEmail}</span>
+            <button
+              type="button"
+              onClick={disconnectImap}
+              className="rounded-full border border-stone-300 text-stone-600 px-4 py-2 text-sm font-medium hover:bg-stone-100 transition"
+            >
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <>
+            <Field
+              label="Gmail address"
+              type="email"
+              value={imapForm.email}
+              onChange={(v) => setImapForm((f) => ({ ...f, email: v }))}
+              placeholder="you@gmail.com"
+            />
+            <Field
+              label="App password"
+              type="password"
+              value={imapForm.password}
+              onChange={(v) => setImapForm((f) => ({ ...f, password: v }))}
+              placeholder="xxxx xxxx xxxx xxxx"
+            />
+            {imapError && <p className="text-sm text-red-600">{imapError}</p>}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={connectImap}
+                disabled={imapConnecting}
+                className="rounded-full border border-teal-600 text-teal-700 px-4 py-2 text-sm font-medium hover:bg-teal-50 transition disabled:opacity-50"
+              >
+                {imapConnecting ? "Connecting…" : "Connect Gmail"}
+              </button>
+            </div>
+          </>
+        )}
+        {!settings.gmailImapConnected && settings.gmailConnected && settings.gmailConnectedEmail && (
+          <p className="text-xs text-stone-400">
+            Previously connected with Google sign-in ({settings.gmailConnectedEmail}).
+          </p>
+        )}
       </section>
 
       <section className="card p-5 flex flex-col gap-3">

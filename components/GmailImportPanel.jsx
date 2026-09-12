@@ -92,8 +92,8 @@ export default function GmailImportPanel({ tripId, onClose, onImported }) {
         {mode === "demo" && (
           <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 rounded-lg px-3 py-2">
             Showing the real bookings this trip was already built from — the app isn&apos;t connected to
-            a live Gmail account yet, so it can&apos;t scan for anything new. Add Gmail OAuth credentials
-            and connect an account in <a href="/settings" className="underline">Settings</a> to scan your
+            a live Gmail account yet, so it can&apos;t scan for anything new. Log in with your Gmail address
+            and an app password in <a href="/settings" className="underline">Settings</a> to scan your
             real inbox for future bookings.
           </div>
         )}

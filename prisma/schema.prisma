@@ -84,6 +84,12 @@ model Settings {
   gmailClientSecret     String?
   gmailRefreshToken     String?
   gmailConnectedEmail   String?
+  // Gmail IMAP login (address + app password) for the Gmail import — a simpler
+  // alternative to the OAuth client flow. The password is AES-256-GCM
+  // encrypted with GMAIL_IMAP_KEY before storage; this column never holds it
+  // in plaintext.
+  gmailImapEmail        String?
+  gmailImapPasswordEnc  String?
   anthropicApiKey       String?
   // Duffel API key for live flight options in the trip planner. Null = the
   // planner falls back to Google Flights search links.

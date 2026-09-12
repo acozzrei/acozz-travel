@@ -16,6 +16,8 @@
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
     "googleapis": "^175.0.0",
+    "imapflow": "^2.0.2",
+    "mailparser": "^3.9.26",
     "next": "16.3.1",
     "prisma": "^6.19.3",
     "react": "19.2.8",
