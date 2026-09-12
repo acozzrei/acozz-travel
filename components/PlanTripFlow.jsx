@@ -635,6 +635,14 @@ export default function PlanTripFlow() {
               {error && <p className="text-sm text-red-600 mr-2">{error}</p>}
               <button
                 type="button"
+                disabled={regenerating || creating}
+                onClick={regenerate}
+                className="rounded-full border border-stone-300 text-stone-700 px-4 py-2 text-sm font-medium hover:bg-white transition disabled:opacity-50"
+              >
+                {regenerating ? "Regenerating…" : "↻ Regenerate"}
+              </button>
+              <button
+                type="button"
                 disabled={creating}
                 onClick={createTrip}
                 className="rounded-full bg-teal-600 text-white px-5 py-2 text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50 flex items-center gap-2"
@@ -682,12 +690,16 @@ function BookLink({ url, label }) {
 const KIND_EMOJI = { meal: "🍽️", activity: "🎡", lodging: "🏨" };
 
 function OptionThumb({ option, size = "h-14 w-14", textSize = "text-xl" }) {
-  if (option.photoUrl) {
+  // If the photo fails to load for any reason, fall back to the emoji tile
+  // so every option always shows a picture of some kind.
+  const [failed, setFailed] = useState(false);
+  if (option.photoUrl && !failed) {
     return (
       <img
         src={option.photoUrl}
         alt=""
         loading="lazy"
+        onError={() => setFailed(true)}
         className={`${size} rounded-lg object-cover shrink-0 bg-stone-100`}
       />
     );
