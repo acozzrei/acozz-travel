@@ -62,6 +62,8 @@ export async function POST(request) {
       notes: s.costNote ? `${s.costNote}${s.kind !== "lodging" && s.kind !== "flight" ? ` × ${party} travelers` : ""}` : null,
       estimatedCost: typeof s.estimatedCost === "number" ? s.estimatedCost : null,
       bookingUrl: s.bookingUrl || null,
+      photoUrl: s.photoUrl || null,
+      photoSource: s.photoSource || null,
       order: order++,
     });
   }

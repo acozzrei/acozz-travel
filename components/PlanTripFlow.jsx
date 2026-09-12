@@ -39,6 +39,13 @@ export default function PlanTripFlow() {
   const [error, setError] = useState(null);
   const debounceRef = useRef(null);
 
+  // --- regenerate state ---
+  const [feedback, setFeedback] = useState("");
+  const [regenerating, setRegenerating] = useState(false);
+  const [feedbackNote, setFeedbackNote] = useState(null);
+  const planParamsRef = useRef(null);
+  const reviewScrollRef = useRef(null);
+
   useEffect(() => {
     if (!query.trim() || selected) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- clears stale suggestions when the query is emptied or a destination is chosen
@@ -82,6 +89,8 @@ export default function PlanTripFlow() {
     setMealPicks({});
     setActivityPicks([]);
     setError(null);
+    setFeedback("");
+    setFeedbackNote(null);
   }
 
   function toggleActivityType(key) {
@@ -96,34 +105,41 @@ export default function PlanTripFlow() {
     return options.find((o) => o.tier === tier) || options[0] || null;
   }
 
+  async function requestProposal(extra = {}) {
+    const res = await fetch("/api/trips/plan", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...planParamsRef.current, ...extra }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Couldn't build the plan.");
+    return data;
+  }
+
   async function plan(e) {
     e.preventDefault();
     if (!selected) {
       setError("Pick a destination from the suggestions list.");
       return;
     }
+    planParamsRef.current = {
+      placeId: selected.placeId,
+      destinationName: selected.description,
+      startDate,
+      endDate,
+      masterPassword,
+      activityTypes,
+      homeAirport,
+      destAirport,
+      partySize,
+    };
     setPlanning(true);
     setError(null);
     try {
-      const res = await fetch("/api/trips/plan", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          placeId: selected.placeId,
-          destinationName: selected.description,
-          startDate,
-          endDate,
-          masterPassword,
-          activityTypes,
-          homeAirport,
-          destAirport,
-          partySize,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Couldn't build the plan.");
+      const data = await requestProposal();
       setProposal(data);
       applyDefaultPicks(data);
+      setFeedbackNote(null);
       setStep("review");
     } catch (err) {
       setError(err.message);
@@ -132,8 +148,47 @@ export default function PlanTripFlow() {
     }
   }
 
+  function collectPlaceIds() {
+    if (!proposal) return [];
+    const ids = new Set();
+    (proposal.lodging || []).forEach((o) => o.placeId && ids.add(o.placeId));
+    (proposal.days || []).forEach((day) => {
+      for (const mealType of ["breakfast", "lunch", "dinner"]) {
+        (day.meals?.[mealType] || []).forEach((o) => o.placeId && ids.add(o.placeId));
+      }
+      (day.activities || []).forEach((o) => o.placeId && ids.add(o.placeId));
+    });
+    return [...ids];
+  }
+
+  async function regenerate() {
+    if (!proposal || regenerating) return;
+    setRegenerating(true);
+    setError(null);
+    try {
+      const data = await requestProposal({
+        feedback,
+        excludePlaceIds: collectPlaceIds(),
+      });
+      setProposal(data);
+      applyDefaultPicks(data);
+      const applied = data.appliedFeedback || [];
+      setFeedbackNote(
+        applied.length > 0
+          ? `Regenerated — ${applied.join(" · ")}. Picks were reset; choose again from the new options.`
+          : "Regenerated with fresh options. Picks were reset; choose again."
+      );
+      setFeedback("");
+      reviewScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
   function applyDefaultPicks(data) {
-    const tier = preferredTier();
+    const tier = data.suggestedTier || preferredTier();
     // Flights: cheapest nonstop first.
     const flightOpts = data.flights?.options || [];
     const nonstop = flightOpts.filter((f) => f.nonstop);
@@ -264,6 +319,8 @@ export default function PlanTripFlow() {
           estimatedCost: lodging.estimatedCost,
           costNote: `${lodging.costNote} × ${proposal.nights} night${proposal.nights === 1 ? "" : "s"}`,
           bookingUrl: lodging.bookingUrl,
+          photoUrl: lodging.photoUrl,
+          photoSource: lodging.photoSource,
         });
       }
       proposal.days.forEach((day, di) => {
@@ -281,6 +338,8 @@ export default function PlanTripFlow() {
               estimatedCost: opt.estimatedCost,
               costNote: opt.costNote,
               bookingUrl: opt.bookingUrl,
+              photoUrl: opt.photoUrl,
+              photoSource: opt.photoSource,
             });
           }
         }
@@ -299,6 +358,8 @@ export default function PlanTripFlow() {
               estimatedCost: opt.estimatedCost,
               costNote: opt.costNote,
               bookingUrl: opt.bookingUrl,
+              photoUrl: opt.photoUrl,
+              photoSource: opt.photoSource,
             });
           }
         }
@@ -363,7 +424,7 @@ export default function PlanTripFlow() {
           )}
         </div>
 
-        <div className="overflow-y-auto px-5 py-4 grow">
+        <div ref={reviewScrollRef} className="overflow-y-auto px-5 py-4 grow">
           {step === "search" ? (
             <form onSubmit={plan} className="flex flex-col gap-3">
               <p className="text-sm text-stone-500">
@@ -552,6 +613,11 @@ export default function PlanTripFlow() {
               activityPicks={activityPicks}
               toggleActivity={toggleActivity}
               onBack={() => setStep("search")}
+              feedback={feedback}
+              setFeedback={setFeedback}
+              regenerating={regenerating}
+              onRegenerate={regenerate}
+              feedbackNote={feedbackNote}
             />
           )}
         </div>
@@ -613,6 +679,26 @@ function BookLink({ url, label }) {
   );
 }
 
+const KIND_EMOJI = { meal: "🍽️", activity: "🎡", lodging: "🏨" };
+
+function OptionThumb({ option, size = "h-14 w-14", textSize = "text-xl" }) {
+  if (option.photoUrl) {
+    return (
+      <img
+        src={option.photoUrl}
+        alt=""
+        loading="lazy"
+        className={`${size} rounded-lg object-cover shrink-0 bg-stone-100`}
+      />
+    );
+  }
+  return (
+    <span className={`${size} rounded-lg shrink-0 bg-stone-100 flex items-center justify-center ${textSize}`}>
+      {KIND_EMOJI[option.kind] || "📍"}
+    </span>
+  );
+}
+
 function OptionCard({ option, selected: isSelected, onSelect, costSuffix }) {
   return (
     <button
@@ -622,8 +708,9 @@ function OptionCard({ option, selected: isSelected, onSelect, costSuffix }) {
         isSelected ? "border-teal-600 bg-teal-50 ring-1 ring-teal-600" : "border-stone-200 hover:border-stone-300 bg-white"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
+      <div className="flex items-start gap-2.5">
+        <OptionThumb option={option} />
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium truncate">{option.name}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[11px] font-semibold text-stone-500">{TIER_MARKS[option.tier]}</span>
@@ -660,6 +747,11 @@ function ReviewStep({
   activityPicks,
   toggleActivity,
   onBack,
+  feedback,
+  setFeedback,
+  regenerating,
+  onRegenerate,
+  feedbackNote,
 }) {
   const flights = proposal.flights;
   const nonstop = (flights?.options || []).filter((f) => f.nonstop);
@@ -670,6 +762,36 @@ function ReviewStep({
       <button type="button" onClick={onBack} className="text-sm text-teal-700 hover:underline self-start">
         ← Back to search
       </button>
+
+      {/* Feedback + regenerate */}
+      <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
+        <p className="text-sm font-medium">Not quite right?</p>
+        <p className="text-xs text-stone-500 mt-0.5">
+          Say what you&apos;d like different — e.g. &ldquo;cheaper hotels, more sushi, add hiking&rdquo; — then regenerate for fresh options.
+        </p>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          disabled={regenerating}
+          rows={2}
+          placeholder="cheaper hotels, more sushi, add hiking…"
+          className="mt-2 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white disabled:bg-stone-100"
+        />
+        <div className="mt-2 flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={regenerating}
+            className="rounded-full bg-teal-600 text-white px-4 py-1.5 text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50 flex items-center gap-2"
+          >
+            {regenerating && (
+              <span className="h-3.5 w-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            )}
+            {regenerating ? "Regenerating…" : "↻ Regenerate options"}
+          </button>
+          {feedbackNote && <p className="text-xs text-teal-700">{feedbackNote}</p>}
+        </div>
+      </div>
 
       {/* Flights */}
       <section>
@@ -813,11 +935,16 @@ function ReviewStep({
                               isSelected ? "border-teal-600 bg-teal-50 ring-1 ring-teal-600" : "border-stone-200 hover:border-stone-300 bg-white"
                             }`}
                           >
-                            <p className="text-sm font-medium truncate">{o.name}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Stars rating={o.rating} />
+                            <div className="flex items-start gap-2.5">
+                              <OptionThumb option={o} size="h-12 w-12" textSize="text-lg" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{o.name}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <Stars rating={o.rating} />
+                                </div>
+                                <p className="text-xs text-stone-500 mt-1">{o.costNote}</p>
+                              </div>
                             </div>
-                            <p className="text-xs text-stone-500 mt-1.5">{o.costNote}</p>
                           </button>
                         );
                       })}
@@ -843,8 +970,11 @@ function FlightCard({ flight, selected: isSelected, onSelect }) {
         isSelected ? "border-teal-600 bg-teal-50 ring-1 ring-teal-600" : "border-stone-200 hover:border-stone-300 bg-white"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
+      <div className="flex items-start gap-2.5">
+        <span className="h-14 w-14 rounded-lg shrink-0 bg-stone-100 flex items-center justify-center text-xl">
+          ✈️
+        </span>
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-medium">{flight.nonstop ? "Nonstop" : `${flight.stops} stop${flight.stops === 1 ? "" : "s"}`}</p>
           <p className="text-xs text-stone-500 mt-0.5">{flight.carrierLabel}</p>
         </div>

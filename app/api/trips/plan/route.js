@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { getRequestAppAccess } from "@/lib/appAuth";
 import { resolveDestination, searchNearbyPlaces } from "@/lib/placesSearch";
 import { buildPlan, flightSearchUrl } from "@/lib/planBuilder";
+import { parseFeedback } from "@/lib/planFeedback";
 import { searchFlightOptions } from "@/lib/flights";
 import { enumerateDates } from "@/lib/itineraryGenerator";
 import { ACTIVITY_CATEGORIES } from "@/lib/activityCategories";
@@ -10,6 +11,12 @@ import { ACTIVITY_CATEGORIES } from "@/lib/activityCategories";
 // POST /api/trips/plan — returns a pick-and-choose proposal (JSON) for a
 // destination + date range. Writes nothing; the frontend POSTs the traveler's
 // selections to /api/trips/plan/create to actually build the trip.
+//
+// Optional body fields for regeneration:
+// - feedback: free text ("cheaper hotels, more sushi, add hiking") — steers
+//   tier defaults, boosts matching cuisines, and adds activity categories.
+// - excludePlaceIds: Google place IDs already shown — regeneration returns
+//   different venues instead of the same ones.
 export async function POST(request) {
   const body = await request.json();
   const {
@@ -22,6 +29,8 @@ export async function POST(request) {
     homeAirport,
     destAirport,
     partySize,
+    feedback,
+    excludePlaceIds,
   } = body;
   if (!placeId || !startDate || !endDate) {
     return NextResponse.json({ error: "Destination and dates are required." }, { status: 400 });
@@ -57,6 +66,24 @@ export async function POST(request) {
     : ACTIVITY_CATEGORIES.filter((c) => c.key === "sightseeing");
   const party = Math.max(1, Math.min(20, Number(partySize) || 2));
 
+  // Feedback directives: tier bias, cuisine boosts, extra activity
+  // categories. Venues already shown are excluded so regeneration surfaces
+  // genuinely different options.
+  const directives = parseFeedback(feedback);
+  const excluded = new Set(Array.isArray(excludePlaceIds) ? excludePlaceIds : []);
+  const withoutShown = (list) => {
+    if (excluded.size === 0) return list;
+    const filtered = list.filter((p) => !excluded.has(p.placeId));
+    return filtered.length > 0 ? filtered : list;
+  };
+  const categories = [...selectedCategories];
+  for (const key of directives.activityKeys) {
+    if (!categories.some((c) => c.key === key)) {
+      const cat = ACTIVITY_CATEGORIES.find((c) => c.key === key);
+      if (cat) categories.push(cat);
+    }
+  }
+
   let destination, restaurants, lodging, activities;
   try {
     destination = await resolveDestination(placeId, settings.googleMapsApiKey);
@@ -74,7 +101,7 @@ export async function POST(request) {
         settings.googleMapsApiKey,
         { limit: 20 }
       ),
-      ...selectedCategories.map((category) =>
+      ...categories.map((category) =>
         searchNearbyPlaces(
           { lat: destination.lat, lng: destination.lng, type: category.type },
           settings.googleMapsApiKey,
@@ -82,14 +109,14 @@ export async function POST(request) {
         )
       ),
     ]);
-    restaurants = restaurantResults;
-    lodging = lodgingResults;
+    restaurants = withoutShown(restaurantResults);
+    lodging = withoutShown(lodgingResults);
     const seen = new Set();
-    activities = activityResultSets.flat().filter((place) => {
+    activities = withoutShown(activityResultSets.flat().filter((place) => {
       if (seen.has(place.placeId)) return false;
       seen.add(place.placeId);
       return true;
-    });
+    }));
   } catch (err) {
     return NextResponse.json({ error: `Google Places error: ${err.message}` }, { status: 502 });
   }
@@ -137,7 +164,10 @@ export async function POST(request) {
     lodging,
     partySize: party,
     flights,
+    cuisineBoost: directives.cuisines,
+    tierBias: directives.tierBias,
   });
+  proposal.appliedFeedback = directives.summary;
 
   return NextResponse.json(proposal);
 }
