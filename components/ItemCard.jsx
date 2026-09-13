@@ -1,5 +1,27 @@
 "use client";
 
+const URL_RE = /https?:\/\/[^\s)]+/;
+
+function renderNotes(text) {
+  // Split plain-text notes on URLs so pasted links (e.g. restaurant menus)
+  // render as clickable links instead of dead text.
+  return text.split(/(https?:\/\/[^\s)]+)/g).map((part, i) =>
+    URL_RE.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-teal-700 underline hover:text-teal-800 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
 const TYPE_LABELS = {
   breakfast: "Breakfast",
   lunch: "Lunch",
@@ -111,7 +133,7 @@ export default function ItemCard({ item, onEdit, onDelete, onResolvePhoto }) {
             </a>
           </p>
         )}
-        {item.notes && <p className="text-sm text-stone-600 whitespace-pre-line">{item.notes}</p>}
+        {item.notes && <p className="text-sm text-stone-600 whitespace-pre-line">{renderNotes(item.notes)}</p>}
         {(item.estimatedCost != null || item.bookingUrl) && (
           <div className="flex items-center gap-3 text-sm mt-1">
             {item.estimatedCost != null && (
