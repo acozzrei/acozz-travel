@@ -13,6 +13,7 @@ const FIELDS = [
   "photoUrl",
   "photoSource",
   "status",
+  "estimatedCost",
 ];
 
 export async function PATCH(request, { params }) {
@@ -29,6 +30,11 @@ export async function PATCH(request, { params }) {
   const data = {};
   for (const f of FIELDS) {
     if (body[f] !== undefined) data[f] = body[f];
+  }
+  // Normalize: blank/NaN clears the cost, anything else becomes a number.
+  if (data.estimatedCost !== undefined) {
+    const n = Number(data.estimatedCost);
+    data.estimatedCost = data.estimatedCost === null || data.estimatedCost === "" || Number.isNaN(n) ? null : n;
   }
   if (body.startTime !== undefined) data.startTime = body.startTime ? new Date(body.startTime) : null;
   if (body.endTime !== undefined) data.endTime = body.endTime ? new Date(body.endTime) : null;

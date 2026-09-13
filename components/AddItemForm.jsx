@@ -27,6 +27,7 @@ export default function AddItemForm({ tripId, item, onClose, onSaved }) {
     partySize: item?.partySize || "",
     notes: item?.notes || "",
     confirmationNo: item?.confirmationNo || "",
+    estimatedCost: item?.estimatedCost ?? "",
     photoUrl: item?.photoUrl || "",
   });
   const [saving, setSaving] = useState(false);
@@ -47,6 +48,7 @@ export default function AddItemForm({ tripId, item, onClose, onSaved }) {
       const payload = {
         ...form,
         partySize: form.partySize ? Number(form.partySize) : null,
+        estimatedCost: form.estimatedCost === "" || form.estimatedCost == null ? null : Number(form.estimatedCost),
         startTime: form.startTime ? new Date(`${form.startTime}:00Z`).toISOString() : null,
         endTime: form.endTime ? new Date(`${form.endTime}:00Z`).toISOString() : null,
       };
@@ -179,6 +181,18 @@ export default function AddItemForm({ tripId, item, onClose, onSaved }) {
               value={form.confirmationNo}
               onChange={(e) => set("confirmationNo", e.target.value)}
               className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-sm font-medium text-stone-600 flex-1">
+            Est. cost ($)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.estimatedCost}
+              onChange={(e) => set("estimatedCost", e.target.value)}
+              className="mt-1 w-full border border-stone-300 rounded-lg px-3 py-2 text-sm"
+              placeholder="Blank = no price shown"
             />
           </label>
         </div>
