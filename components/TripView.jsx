@@ -43,6 +43,20 @@ export default function TripView({ initialTrip, accessLevel }) {
     }
   }
 
+  async function handleRenameTrip(newName) {
+    const res = await fetch(`/api/trips/${trip.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Couldn't rename the trip.");
+      return;
+    }
+    refresh();
+  }
+
   async function handleDelete(item) {
     if (!confirm(`Remove "${item.title}" from this trip?`)) return;
     await fetch(`/api/items/${item.id}`, { method: "DELETE" });
@@ -78,7 +92,7 @@ export default function TripView({ initialTrip, accessLevel }) {
 
   return (
     <div className="max-w-4xl mx-auto px-5 py-8">
-      <TripCoverBanner trip={trip} />
+      <TripCoverBanner trip={trip} editable={canEdit} onRename={handleRenameTrip} />
 
       {!canEdit && (
         <div className="flex flex-wrap items-center gap-3 bg-stone-100 rounded-lg px-3 py-2 mb-4">
